@@ -1,0 +1,147 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ══════════════════════════════════════════
+    //  HELPERS
+    // ══════════════════════════════════════════
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function companyOf() {
+      return request.auth.token.companyId;
+    }
+
+    function roleOf() {
+      return request.auth.token.role;
+    }
+
+    function isAdmin() {
+      return isAuth() && roleOf() == 'admin';
+    }
+
+    function isManager() {
+      return isAuth() && roleOf() in ['admin', 'manager'];
+    }
+
+    function isDriver() {
+      return isAuth() && roleOf() == 'driver';
+    }
+
+    function isSameCompany(cid) {
+      return isAuth() && companyOf() == cid;
+    }
+
+    // Le doc créé/modifié porte bien le bon companyId
+    function sameCompanyDoc() {
+      return request.resource.data.companyId == companyOf();
+    }
+
+    // On ne peut pas changer le companyId d'un document existant
+    function noCompanyChange() {
+      return resource.data.companyId == request.resource.data.companyId;
+    }
+
+    // ══════════════════════════════════════════
+    //  DONNÉES MÉTIER
+    //  /companies/{companyId}/{collection}/{docId}
+    //
+    //  Collections :
+    //    vehicles, chauffeurs, contrats, paiements,
+    //    carburant, maintenances, affectations, stations,
+    //    devis, factures, documents, incidents,
+    //    messages, alerts, partners, demandes
+    // ══════════════════════════════════════════
+
+    match /companies/{companyId}/{collection}/{docId} {
+
+      // Lecture : membre de la même entreprise
+      allow read: if isSameCompany(companyId);
+
+      // Création : membre + doc bien rattaché à l'entreprise
+      allow create: if isSameCompany(companyId)
+                    && sameCompanyDoc();
+
+      // Modification : membre + companyId immuable
+      allow update: if isSameCompany(companyId)
+                    && sameCompanyDoc()
+                    && noCompanyChange();
+
+      // Suppression : managers et admins uniquement
+      allow delete: if isSameCompany(companyId)
+                    && isManager();
+    }
+
+    // ══════════════════════════════════════════
+    //  GPS TEMPS RÉEL
+    //  /vehicle_locations/{vehicleId}
+    //
+    //  Hors /companies/ — accès cross-company
+    //  pour les devices GPS (trackers mobiles).
+    //
+    //  En production : écriture via Firebase Admin SDK
+    //  (service account) uniquement.
+    // ══════════════════════════════════════════
+
+    match /vehicle_locations/{vehicleId} {
+
+      // Lecture : tout utilisateur authentifié
+      allow read: if isAuth();
+
+      // Écriture : managers (ou service account via Admin SDK)
+      // Le GPS Sender mobile utilise un token manager
+      allow write: if isManager();
+    }
+
+    // ══════════════════════════════════════════
+    //  PROFILS UTILISATEURS
+    //  /users/{userId}
+    //
+    //  Chaque user lit/modifie son propre doc.
+    //  Les admins peuvent lire et créer des users
+    //  dans leur entreprise.
+    // ══════════════════════════════════════════
+
+    match /users/{userId} {
+
+      // Lecture : soi-même, ou admin de la même entreprise
+      allow read: if request.auth.uid == userId
+                  || (isAdmin()
+                      && resource.data.companyId == companyOf());
+
+      // Modification de son propre profil
+      allow update: if request.auth.uid == userId
+                    && noCompanyChange();
+
+      // Création/modification par un admin (onboarding)
+      allow create: if isAdmin() && sameCompanyDoc();
+      allow update: if isAdmin()
+                    && sameCompanyDoc()
+                    && noCompanyChange();
+
+      // Suppression : admins seulement
+      allow delete: if isAdmin()
+                    && resource.data.companyId == companyOf();
+    }
+
+    // ══════════════════════════════════════════
+    //  MÉTADONNÉES ENTREPRISES
+    //  /companies/{companyId}
+    //
+    //  Le document racine (métadonnées) est séparé
+    //  des sous-collections métier.
+    // ══════════════════════════════════════════
+
+    match /companies/{companyId} {
+
+      // Lecture : membres de l'entreprise
+      allow read: if isSameCompany(companyId);
+
+      // Écriture : admins de l'entreprise uniquement
+      allow write: if isSameCompany(companyId) && isAdmin();
+    }
+
+  }
+}

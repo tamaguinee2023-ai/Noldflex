@@ -1,0 +1,112 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ══════════════════════════════════════════
+    //  HELPERS
+    // ══════════════════════════════════════════
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function roleOf() {
+      return request.auth.token.role;
+    }
+
+    function companyOf() {
+      return request.auth.token.companyId;
+    }
+
+    function isManager() {
+      return isAuth() && roleOf() in ['admin', 'manager'];
+    }
+
+    function isAdmin() {
+      return isAuth() && roleOf() == 'admin';
+    }
+
+    function isSameCompany(cid) {
+      return isAuth() && companyOf() == cid;
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isPDF() {
+      return request.resource.contentType == 'application/pdf';
+    }
+
+    function maxSize(mb) {
+      return request.resource.size <= mb * 1024 * 1024;
+    }
+
+    // ══════════════════════════════════════════
+    //  PHOTOS VÉHICULES
+    //  vehicles/{vehicleId}/photo.jpg
+    //
+    //  Chemin : STORAGE_PATHS.vehiclePhoto(vehicleId)
+    // ══════════════════════════════════════════
+
+    match /vehicles/{vehicleId}/photo.jpg {
+
+      // Lecture : tout utilisateur authentifié de n'importe quelle entreprise
+      // (les URLs sont déjà protégées par l'auth Firestore côté données)
+      allow read: if isAuth();
+
+      // Écriture : managers uniquement, image ≤ 5 Mo
+      allow write: if isManager()
+                   && isImage()
+                   && maxSize(5);
+
+      // Suppression : managers uniquement
+      allow delete: if isManager();
+    }
+
+    // ══════════════════════════════════════════
+    //  PERMIS CHAUFFEURS
+    //  drivers/{driverId}/license.jpg
+    //
+    //  Chemin : STORAGE_PATHS.driverLicense(driverId)
+    //  Accès restreint : managers seulement (données RH)
+    // ══════════════════════════════════════════
+
+    match /drivers/{driverId}/license.jpg {
+
+      // Lecture : managers de n'importe quelle entreprise
+      allow read: if isManager();
+
+      // Écriture : managers, image ≤ 10 Mo
+      allow write: if isManager()
+                   && isImage()
+                   && maxSize(10);
+
+      allow delete: if isManager();
+    }
+
+    // ══════════════════════════════════════════
+    //  DOCUMENTS PDF
+    //  documents/{companyId}/{docId}.pdf
+    //
+    //  Chemin : STORAGE_PATHS.document(companyId, docId)
+    //  Isolation par companyId dans le chemin.
+    // ══════════════════════════════════════════
+
+    match /documents/{companyId}/{docId}.pdf {
+
+      // Lecture : membres de la même entreprise
+      allow read: if isSameCompany(companyId);
+
+      // Écriture : managers de la même entreprise, PDF ≤ 20 Mo
+      allow write: if isSameCompany(companyId)
+                   && isManager()
+                   && isPDF()
+                   && maxSize(20);
+
+      // Suppression : admins uniquement
+      allow delete: if isSameCompany(companyId) && isAdmin();
+    }
+
+  }
+}
