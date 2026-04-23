@@ -410,11 +410,13 @@ td{
   min-width:180px;flex:1;
   transition:border-color .15s;
 }
-.finput:focus-within{border-color:rgba(232,169,38,.3)}
+.finput:focus-within{border-color:rgba(232,169,38,.3);box-shadow:0 0 0 3px rgba(232,169,38,.06)}
 .finput input{
   background:none;border:none;outline:none;
   color:var(--t-main);font-size:13px;font-family:var(--font-ui);width:100%;
+  min-width:0;
 }
+#sf-clear:hover{color:var(--amber)!important}
 .fsel{
   background:var(--bg-panel);border:1px solid var(--border-md);
   border-radius:var(--r-sm);padding:8px 13px;
@@ -1083,6 +1085,9 @@ td:first-child{
       <div class="nav-item" data-view="utilisateurs" onclick="navigate('utilisateurs')"><span class="nav-icon">👥</span>Utilisateurs</div>
       <div class="nav-item" data-view="companies" onclick="navigate('companies')"><span class="nav-icon">🏢</span>Entreprises</div>
       <div class="nav-item" data-view="kpisavances" onclick="navigate('kpisavances')"><span class="nav-icon">📈</span>KPIs Avancés</div>
+
+      <div class="nav-section-label">Système</div>
+      <div class="nav-item" data-view="parametres" onclick="navigate('parametres')"><span class="nav-icon">⚙️</span>Paramètres</div>
     </nav>
 
     <!-- User footer -->
@@ -1148,6 +1153,7 @@ td:first-child{
   <button class="bni" data-view="factures" onclick="navigate('factures')"><span class="ico">🧾</span>Factures</button>
   <button class="bni" data-view="rapports" onclick="navigate('rapports')"><span class="ico">📈</span>Rapports</button>
   <button class="bni" data-view="vitessegps" onclick="navigate('vitessegps')"><span class="ico">🚀</span>Vitesse</button>
+  <button class="bni" data-view="parametres" onclick="navigate('parametres')"><span class="ico">⚙️</span>Paramètres</button>
 </nav>
 
 <script>
@@ -1930,7 +1936,7 @@ function navigate(view){
   document.querySelectorAll(".bni").forEach(n=>{
     n.classList.toggle("active",n.dataset.view===view);
   });
-  const icons={dashboard:"📊",flotte:"🚛",catalogue:"🏪",gps:"📡",affectations:"🧑‍✈️",chauffeurs:"👷",partenaires:"🤝",clients:"📋",contrats:"📄",paiements:"💳",carburant:"⛽",stations:"🏭",conso:"📉",maintenance:"🔧",devis:"📑",factures:"🧾",rapports:"📈",documents:"🗂️",incidents:"🚨",messagerie:"💬",notifications:"🔔",financier:"📊",gpshistorique:"🗺️",signature:"✍️",onboarding:"🏢",utilisateurs:"👥",companies:"🏢",kpisavances:"📈",vitessegps:"🚀"};
+  const icons={dashboard:"📊",flotte:"🚛",catalogue:"🏪",gps:"📡",affectations:"🧑‍✈️",chauffeurs:"👷",partenaires:"🤝",clients:"📋",contrats:"📄",paiements:"💳",carburant:"⛽",stations:"🏭",conso:"📉",maintenance:"🔧",devis:"📑",factures:"🧾",rapports:"📈",documents:"🗂️",incidents:"🚨",messagerie:"💬",notifications:"🔔",financier:"📊",gpshistorique:"🗺️",signature:"✍️",onboarding:"🏢",utilisateurs:"👥",companies:"🏢",kpisavances:"📈",vitessegps:"🚀",parametres:"⚙️"};
   const icon=icons[view]||"";
   document.getElementById("page-title").innerHTML=`<span style="opacity:.5;margin-right:6px">${icon}</span>${navLabel(view)}`;
   closeAlertsPanel();
@@ -1948,7 +1954,7 @@ function navigate(view){
 }
 function renderView(v){
   const c=document.getElementById("content");
-  const fns={dashboard:renderDashboard,flotte:renderFlotte,catalogue:renderCatalogue,gps:renderGPS,affectations:renderAffectations,chauffeurs:renderChauffeurs,partenaires:renderPartenaires,clients:renderClients,contrats:renderContracts,paiements:renderPayments,carburant:renderCarburant,stations:renderStations,conso:renderConso,maintenance:renderMaintenance,devis:renderQuote,factures:renderFactures,rapports:renderRapports,documents:renderDocuments,incidents:renderIncidents,messagerie:renderMessagerie,notifications:renderNotifications,financier:renderFinancier,gpshistorique:renderGPSHistorique,signature:renderSignature,onboarding:renderOnboarding,utilisateurs:renderUtilisateurs,companies:renderCompanies,kpisavances:renderKPIsAvances,vitessegps:renderVitesseGPS};
+  const fns={dashboard:renderDashboard,flotte:renderFlotte,catalogue:renderCatalogue,gps:renderGPS,affectations:renderAffectations,chauffeurs:renderChauffeurs,partenaires:renderPartenaires,clients:renderClients,contrats:renderContracts,paiements:renderPayments,carburant:renderCarburant,stations:renderStations,conso:renderConso,maintenance:renderMaintenance,devis:renderQuote,factures:renderFactures,rapports:renderRapports,documents:renderDocuments,incidents:renderIncidents,messagerie:renderMessagerie,notifications:renderNotifications,financier:renderFinancier,gpshistorique:renderGPSHistorique,signature:renderSignature,onboarding:renderOnboarding,utilisateurs:renderUtilisateurs,companies:renderCompanies,kpisavances:renderKPIsAvances,vitessegps:renderVitesseGPS,parametres:renderParametres};
   if(fns[v]) fns[v]();
   else c.innerHTML=`<div style="text-align:center;padding:60px;color:var(--t-muted)">${v}</div>`;
 }
@@ -2355,7 +2361,9 @@ function confirmDelete(collection, id, label) {
     fleet:"vehicles", partners:"partners", contrats:"contrats",
     maintenances:"maintenances", paiements:"paiements", devis:"devis",
     chauffeurs:"chauffeurs", carburant:"carburant", affectations:"affectations",
-    factures:"factures", documents:"documents", incidents:"incidents"
+    factures:"factures", documents:"documents", incidents:"incidents",
+    // FIX — collections manquantes ajoutées
+    alerts:"alerts", messages:"messages", stations:"stations", demandes:"demandes"
   };
   const fbCol = fbColMap[collection];
   (async () => {
@@ -3038,16 +3046,45 @@ function renderFlotte(){
   const types=[...new Set(fleet.map(e=>e.type))];
   const zones=[...new Set(fleet.map(e=>e.location))];
   c.innerHTML=`
-  <div class="frow">
-    <div class="finput"><span>🔍</span><input id="sf" placeholder="Rechercher un vehicle…" oninput="filterFlotte()"></div>
+  <div class="frow" style="align-items:stretch">
+    <!-- Champ recherche amélioré -->
+    <div class="finput" id="sf-wrap" style="position:relative;min-width:220px;flex:1">
+      <span style="font-size:15px;flex-shrink:0">🔍</span>
+      <input id="sf" placeholder="Rechercher par marque, plaque, zone…"
+        oninput="filterFlotte();_toggleClear('sf','sf-clear')"
+        onkeydown="if(event.key==='Escape'){document.getElementById('sf').value='';filterFlotte();_toggleClear('sf','sf-clear')}"
+        style="flex:1"
+        autocomplete="off"
+      >
+      <!-- Bouton clear (×) -->
+      <button id="sf-clear" onclick="document.getElementById('sf').value='';filterFlotte();_toggleClear('sf','sf-clear')" title="Effacer"
+        style="display:none;background:none;border:none;cursor:pointer;color:var(--t-faint);font-size:16px;line-height:1;padding:0 2px;transition:color .15s"
+        onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='var(--t-faint)'">✕</button>
+    </div>
+    <!-- Bouton Rechercher (déclenche filterFlotte — utile sur mobile) -->
+    <button class="btn-secondary" onclick="filterFlotte()" title="Lancer la recherche"
+      style="padding:8px 14px;display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">
+      <span style="font-size:14px">🔎</span> Rechercher
+    </button>
     <select class="fsel" id="ft" onchange="filterFlotte()"><option value="">Tous les types</option>${types.map(t=>`<option>${t}</option>`).join("")}</select>
     <select class="fsel" id="fs" onchange="filterFlotte()"><option value="">Tous les statuts</option><option value="disponible">Disponible</option><option value="mission">En Mission</option><option value="entretien">En Maintenance</option></select>
     <select class="fsel" id="fz" onchange="filterFlotte()"><option value="">Toutes les zones</option>${zones.map(z=>`<option>${z}</option>`).join("")}</select>
-    <button class="btn-primary" onclick="openFormVehicle()">+ Nouvel vehicle</button>
+    <!-- Bouton Ajouter amélioré -->
+    <button class="btn-primary" onclick="openFormVehicle()"
+      style="display:flex;align-items:center;gap:7px;padding:8px 18px;font-size:13px;white-space:nowrap;flex-shrink:0">
+      <span style="font-size:18px;line-height:1;font-weight:400">＋</span>
+      <span>Ajouter un véhicule</span>
+    </button>
   </div>
   <div id="fleet-grid" class="gfc"></div>
   <div id="fleet-count" style="font-size:12px;color:var(--t-muted);margin-top:4px"></div>`;
   filterFlotte();
+}
+// Helper générique pour boutons clear dans tous les champs de recherche
+function _toggleClear(inputId, btnId){
+  const v=document.getElementById(inputId)?.value||"";
+  const btn=document.getElementById(btnId);
+  if(btn)btn.style.display=v?"inline-block":"none";
 }
 function filterFlotte(){
   const q=(document.getElementById("sf")?.value||"").toLowerCase();
@@ -3072,8 +3109,21 @@ function renderCatalogue(){
     <div style="font-family:var(--font-ui);font-size:20px;font-weight:900;color:var(--t-bright);margin-bottom:4px;letter-spacing:-0.5px">🏪 Marketplace NOLDEX Fleet</div>
     <div style="font-size:13px;color:var(--t-muted)">Catalogue public des équipements disponibles — Location et prestation B2B en Guinée</div>
   </div>
-  <div class="frow">
-    <div class="finput"><span>🔍</span><input id="cs" placeholder="Rechercher un équipement…" oninput="filterCatalogue()"></div>
+  <div class="frow" style="align-items:stretch">
+    <div class="finput" style="position:relative;min-width:220px;flex:2">
+      <span style="font-size:15px;flex-shrink:0">🔍</span>
+      <input id="cs" placeholder="Rechercher équipement, type, zone…"
+        oninput="filterCatalogue();_toggleClear('cs','cs-clear')"
+        onkeydown="if(event.key==='Escape'){document.getElementById('cs').value='';filterCatalogue();_toggleClear('cs','cs-clear')}"
+        style="flex:1" autocomplete="off">
+      <button id="cs-clear" onclick="document.getElementById('cs').value='';filterCatalogue();_toggleClear('cs','cs-clear')" title="Effacer"
+        style="display:none;background:none;border:none;cursor:pointer;color:var(--t-faint);font-size:16px;line-height:1;padding:0 2px"
+        onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='var(--t-faint)'">✕</button>
+    </div>
+    <button class="btn-secondary" onclick="filterCatalogue()"
+      style="padding:8px 14px;display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">
+      <span style="font-size:14px">🔎</span> Rechercher
+    </button>
     <select class="fsel" id="ct" onchange="filterCatalogue()"><option value="">Tous les types</option>${types.map(t=>`<option>${t}</option>`).join("")}</select>
     <select class="fsel" id="cz" onchange="filterCatalogue()"><option value="">Toutes les zones</option>${zones.map(z=>`<option>${z}</option>`).join("")}</select>
     <select class="fsel" id="cst" onchange="filterCatalogue()"><option value="">Tout statut</option><option value="disponible">Disponible</option><option value="mission">En Mission</option></select>
@@ -3477,13 +3527,30 @@ function renderAffectations(){
     ${kpi("Chauffeurs libres",libres.length,"","Disponibles","#3D8EFF","👷","var(--sapphire)")}
     ${kpi("Véhicules libres",vehLibres.length,"","Sans conducteur","#8B5CF6","🔑","#8B5CF6")}
   </div>
-  <div class="frow">
-    <div class="finput"><span>🔍</span><input id="saff" placeholder="Rechercher conducteur, vehicle, zone…" oninput="filterAffectations()"></div>
+  <div class="frow" style="align-items:stretch">
+    <div class="finput" style="position:relative;min-width:220px;flex:2">
+      <span style="font-size:15px;flex-shrink:0">🔍</span>
+      <input id="saff" placeholder="Rechercher conducteur, véhicule, zone…"
+        oninput="filterAffectations();_toggleClear('saff','saff-clear')"
+        onkeydown="if(event.key==='Escape'){document.getElementById('saff').value='';filterAffectations();_toggleClear('saff','saff-clear')}"
+        style="flex:1" autocomplete="off">
+      <button id="saff-clear" onclick="document.getElementById('saff').value='';filterAffectations();_toggleClear('saff','saff-clear')" title="Effacer"
+        style="display:none;background:none;border:none;cursor:pointer;color:var(--t-faint);font-size:16px;line-height:1;padding:0 2px"
+        onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='var(--t-faint)'">✕</button>
+    </div>
+    <button class="btn-secondary" onclick="filterAffectations()"
+      style="padding:8px 14px;display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">
+      <span style="font-size:14px">🔎</span> Rechercher
+    </button>
     <select class="fsel" id="faff" onchange="filterAffectations()">
       <option value="">Tous les statuts</option>
       ${Object.entries(affCfg).map(([k,v])=>`<option value="${k}">${v.l}</option>`).join("")}
     </select>
-    <button class="btn-primary" onclick="openFormAffectation()">🧑‍✈️ + Assign</button>
+    <button class="btn-primary" onclick="openFormAffectation()"
+      style="display:flex;align-items:center;gap:7px;padding:8px 18px;font-size:13px;white-space:nowrap;flex-shrink:0">
+      <span style="font-size:18px;line-height:1;font-weight:400">＋</span>
+      <span>Ajouter une affectation</span>
+    </button>
   </div>
   <div id="aff-list"></div>`;
   filterAffectations();
@@ -3693,8 +3760,23 @@ function renderChauffeurs(){
   </div>
 
   <!-- Filtres + Grille -->
-  <div class="frow">
-    <div class="finput" style="flex:2"><span>🔍</span><input id="sch" placeholder="${t("drv_search")}" oninput="filterChauffeurs()"></div>
+  <div class="frow" style="align-items:stretch">
+    <!-- Champ recherche amélioré -->
+    <div class="finput" id="sch-wrap" style="position:relative;min-width:220px;flex:2">
+      <span style="font-size:15px;flex-shrink:0">🔍</span>
+      <input id="sch" placeholder="${t("drv_search")}"
+        oninput="filterChauffeurs();_toggleClear('sch','sch-clear')"
+        onkeydown="if(event.key==='Escape'){document.getElementById('sch').value='';filterChauffeurs();_toggleClear('sch','sch-clear')}"
+        style="flex:1" autocomplete="off">
+      <button id="sch-clear" onclick="document.getElementById('sch').value='';filterChauffeurs();_toggleClear('sch','sch-clear')" title="Effacer"
+        style="display:none;background:none;border:none;cursor:pointer;color:var(--t-faint);font-size:16px;line-height:1;padding:0 2px;transition:color .15s"
+        onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='var(--t-faint)'">✕</button>
+    </div>
+    <!-- Bouton Rechercher -->
+    <button class="btn-secondary" onclick="filterChauffeurs()" title="Lancer la recherche"
+      style="padding:8px 14px;display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">
+      <span style="font-size:14px">🔎</span> Rechercher
+    </button>
     <select class="fsel" id="fch" onchange="filterChauffeurs()">
       <option value="">${t("all_statuses")}</option>
       <option value="actif">✅ ${t("st_active")}</option>
@@ -3710,7 +3792,12 @@ function renderChauffeurs(){
       <option value="">Tous permis</option>
       ${["B","C","C+E","B+C","D"].map(p=>`<option>${p}</option>`).join("")}
     </select>
-    <button class="btn-primary" onclick="openFormChauffeur()">👷 + Nouveau chauffeur</button>
+    <!-- Bouton Ajouter amélioré -->
+    <button class="btn-primary" onclick="openFormChauffeur()"
+      style="display:flex;align-items:center;gap:7px;padding:8px 18px;font-size:13px;white-space:nowrap;flex-shrink:0">
+      <span style="font-size:18px;line-height:1;font-weight:400">＋</span>
+      <span>Ajouter un chauffeur</span>
+    </button>
   </div>
   <div id="chauffeurs-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px"></div>
   <div id="ch-count" style="font-size:12px;color:var(--t-muted);margin-top:10px;text-align:center"></div>`;
@@ -4107,13 +4194,42 @@ function saveChauffeur(editId){
 function renderPartenaires(){
   const c=document.getElementById("content");
   c.innerHTML=`
-  <div class="frow" style="margin-bottom:16px">
-    <button class="btn-primary" onclick="openFormPartenaire()">🤝 + New Partner</button>
+  <div class="frow" style="margin-bottom:16px;align-items:stretch">
+    <div class="finput" style="position:relative;min-width:220px;flex:2">
+      <span style="font-size:15px;flex-shrink:0">🔍</span>
+      <input id="sp" placeholder="Rechercher partenaire, NIF, contact…"
+        oninput="filterPartenaires();_toggleClear('sp','sp-clear')"
+        onkeydown="if(event.key==='Escape'){document.getElementById('sp').value='';filterPartenaires();_toggleClear('sp','sp-clear')}"
+        style="flex:1" autocomplete="off">
+      <button id="sp-clear" onclick="document.getElementById('sp').value='';filterPartenaires();_toggleClear('sp','sp-clear')" title="Effacer"
+        style="display:none;background:none;border:none;cursor:pointer;color:var(--t-faint);font-size:16px;line-height:1;padding:0 2px"
+        onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='var(--t-faint)'">✕</button>
+    </div>
+    <button class="btn-secondary" onclick="filterPartenaires()"
+      style="padding:8px 14px;display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">
+      <span style="font-size:14px">🔎</span> Rechercher
+    </button>
+    <button class="btn-primary" onclick="openFormPartenaire()"
+      style="display:flex;align-items:center;gap:7px;padding:8px 18px;font-size:13px;white-space:nowrap;flex-shrink:0">
+      <span style="font-size:18px;line-height:1;font-weight:400">＋</span>
+      <span>Nouveau partenaire</span>
+    </button>
   </div>
-  ${card("Partenaires Actifs",`${partners.length} partenaires`,`
+  ${card("Partenaires Actifs",`<span id="part-count">${partners.length} partenaires</span>`,`
     <div class="tbl-wrap"><table>
       <thead><tr><th>Partenaire</th><th>Véhicules</th><th>Contact</th><th>NIF</th><th>Revenus</th><th>Statut</th><th>Actions</th></tr></thead>
-      <tbody>${partners.map(p=>`<tr>
+      <tbody id="part-tbody"></tbody>
+    </table></div>`)}`;
+  filterPartenaires();
+}
+function filterPartenaires(){
+  const q=(document.getElementById("sp")?.value||"").toLowerCase();
+  const filtered=partners.filter(p=>!q||`${p.name} ${p.nif||""} ${p.contact}`.toLowerCase().includes(q));
+  const tbody=document.getElementById("part-tbody");
+  const cnt=document.getElementById("part-count");
+  if(cnt)cnt.textContent=`${filtered.length} partenaire${filtered.length>1?"s":""}`;
+  if(!tbody)return;
+  tbody.innerHTML=filtered.length?filtered.map(p=>`<tr>
         <td><div style="display:flex;align-items:center;gap:10px">
           <div style="width:34px;height:34px;border-radius:9px;overflow:hidden;flex-shrink:0">
             <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=F0900A&color=000&size=68&bold=true&format=png" style="width:100%;height:100%;object-fit:cover">
@@ -4126,8 +4242,7 @@ function renderPartenaires(){
         <td style="color:var(--sapphire);font-weight:600;white-space:nowrap">${p.rev}</td>
         <td>${badge(p.st==="actif"?{l:"Actif",c:"#3D8EFF",b:"rgba(61,142,255,.12)"}:{l:"En Attente",c:"#FF4D4D",b:"rgba(255,77,77,.15)"})}</td>
         <td><button class="btn-secondary" style="padding:5px 12px;font-size:12px" onclick="openPartenaireModal(${p.id})">Voir profil</button></td>
-      </tr>`).join("")}</tbody>
-    </table></div>`)}`;
+      </tr>`).join(""):`<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--t-muted)">🔍 Aucun partenaire trouvé</td></tr>`;
 }
 
 // ── CLIENTS ──────────────────────────────────────────
@@ -4140,8 +4255,26 @@ function renderClients(){
     ${kpi("En attente",attente,"","À traiter","#3D8EFF","⏳","var(--sapphire)")}
     ${kpi("Traitées",demandes.filter(d=>d.st!=="en_attente").length,"","Accepté / Clôturé","#3D8EFF","✅","var(--sapphire)")}
   </div>
-  <div class="frow">
-    <div class="finput"><span>🔍</span><input id="sc" placeholder="Rechercher…" oninput="filterClients()"></div>
+  <div class="frow" style="align-items:stretch">
+    <div class="finput" style="position:relative;min-width:220px;flex:2">
+      <span style="font-size:15px;flex-shrink:0">🔍</span>
+      <input id="sc" placeholder="Rechercher client, véhicule, référence…"
+        oninput="filterClients();_toggleClear('sc','sc-clear')"
+        onkeydown="if(event.key==='Escape'){document.getElementById('sc').value='';filterClients();_toggleClear('sc','sc-clear')}"
+        style="flex:1" autocomplete="off">
+      <button id="sc-clear" onclick="document.getElementById('sc').value='';filterClients();_toggleClear('sc','sc-clear')" title="Effacer"
+        style="display:none;background:none;border:none;cursor:pointer;color:var(--t-faint);font-size:16px;line-height:1;padding:0 2px"
+        onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='var(--t-faint)'">✕</button>
+    </div>
+    <button class="btn-secondary" onclick="filterClients()"
+      style="padding:8px 14px;display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">
+      <span style="font-size:14px">🔎</span> Rechercher
+    </button>
+    <button class="btn-primary" onclick="openFormDemande()"
+      style="display:flex;align-items:center;gap:7px;padding:8px 18px;font-size:13px;white-space:nowrap;flex-shrink:0">
+      <span style="font-size:18px;line-height:1;font-weight:400">＋</span>
+      <span>Ajouter un client</span>
+    </button>
   </div>
   <div id="clients-table">
     ${renderClientTable(demandes)}
@@ -4237,8 +4370,21 @@ function renderContracts(){
   `)}
 
   <!-- Filtres + Table -->
-  <div class="frow">
-    <div class="finput" style="flex:2"><span>🔍</span><input id="scr" placeholder="${t("ct_search")}" oninput="filterContracts()"></div>
+  <div class="frow" style="align-items:stretch">
+    <div class="finput" style="position:relative;min-width:220px;flex:2">
+      <span style="font-size:15px;flex-shrink:0">🔍</span>
+      <input id="scr" placeholder="${t("ct_search")}"
+        oninput="filterContracts();_toggleClear('scr','scr-clear')"
+        onkeydown="if(event.key==='Escape'){document.getElementById('scr').value='';filterContracts();_toggleClear('scr','scr-clear')}"
+        style="flex:1" autocomplete="off">
+      <button id="scr-clear" onclick="document.getElementById('scr').value='';filterContracts();_toggleClear('scr','scr-clear')" title="Effacer"
+        style="display:none;background:none;border:none;cursor:pointer;color:var(--t-faint);font-size:16px;line-height:1;padding:0 2px"
+        onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='var(--t-faint)'">✕</button>
+    </div>
+    <button class="btn-secondary" onclick="filterContracts()"
+      style="padding:8px 14px;display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">
+      <span style="font-size:14px">🔎</span> Rechercher
+    </button>
     <select class="fsel" id="fcr-st" onchange="filterContracts()">
       <option value="">${t("all_statuses")}</option>
       <option value="actif">✅ ${t("st_active")}</option>
@@ -4248,7 +4394,11 @@ function renderContracts(){
       <option value="">${t("all_clients")}</option>
       ${[...new Set(contrats.map(c=>c.client))].map(cl=>`<option>${cl}</option>`).join("")}
     </select>
-    <button class="btn-primary" onclick="openFormContrat()">${t("ct_new")}</button>
+    <button class="btn-primary" onclick="openFormContrat()"
+      style="display:flex;align-items:center;gap:7px;padding:8px 18px;font-size:13px;white-space:nowrap;flex-shrink:0">
+      <span style="font-size:18px;line-height:1;font-weight:400">＋</span>
+      <span>${t("ct_new")}</span>
+    </button>
   </div>
   <div id="contrats-table"></div>`;
 
@@ -4353,10 +4503,27 @@ function confirmerRenouvellement(id){
 function renderPayments(){
   const c=document.getElementById("content");
   c.innerHTML=`
-  <div class="frow">
-    <div class="finput"><span>🔍</span><input id="spy" placeholder="Rechercher…" oninput="filterPayments()"></div>
+  <div class="frow" style="align-items:stretch">
+    <div class="finput" style="position:relative;min-width:220px;flex:2">
+      <span style="font-size:15px;flex-shrink:0">🔍</span>
+      <input id="spy" placeholder="Rechercher paiement, partenaire, référence…"
+        oninput="filterPayments();_toggleClear('spy','spy-clear')"
+        onkeydown="if(event.key==='Escape'){document.getElementById('spy').value='';filterPayments();_toggleClear('spy','spy-clear')}"
+        style="flex:1" autocomplete="off">
+      <button id="spy-clear" onclick="document.getElementById('spy').value='';filterPayments();_toggleClear('spy','spy-clear')" title="Effacer"
+        style="display:none;background:none;border:none;cursor:pointer;color:var(--t-faint);font-size:16px;line-height:1;padding:0 2px"
+        onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='var(--t-faint)'">✕</button>
+    </div>
+    <button class="btn-secondary" onclick="filterPayments()"
+      style="padding:8px 14px;display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">
+      <span style="font-size:14px">🔎</span> Rechercher
+    </button>
     <select class="fsel" id="fpy" onchange="filterPayments()"><option value="">Tous les statuts</option><option value="valide">Validated</option><option value="en_attente">Pending</option><option value="rejete">Rejected</option></select>
-    <button class="btn-primary" onclick="openFormPayment()">💳 + New payment</button>
+    <button class="btn-primary" onclick="openFormPayment()"
+      style="display:flex;align-items:center;gap:7px;padding:8px 18px;font-size:13px;white-space:nowrap;flex-shrink:0">
+      <span style="font-size:18px;line-height:1;font-weight:400">＋</span>
+      <span>Ajouter un paiement</span>
+    </button>
   </div>
   <div id="paiements-table">${renderPaymentsTable(paiements)}</div>`;
 }
@@ -4444,12 +4611,31 @@ function renderStations(){
   const totalVal = stations.reduce((s,x)=>s+(x.stock*x.prix_litre),0);
 
   c.innerHTML = `
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
-    <div>
-      <div style="font-family:var(--font-ui);font-size:20px;font-weight:800;color:var(--t-bright)">🏭 Stations Carburant</div>
-      <div style="font-size:12px;color:var(--t-muted);margin-top:2px">${stations.length} stations · Stock synchronisé avec les ravitaillements</div>
+  <div class="frow" style="align-items:stretch;margin-bottom:18px">
+    <div class="finput" style="position:relative;min-width:220px;flex:2">
+      <span style="font-size:15px;flex-shrink:0">🔍</span>
+      <input id="sst" placeholder="Rechercher station, zone, carburant…"
+        oninput="filterStations();_toggleClear('sst','sst-clear')"
+        onkeydown="if(event.key==='Escape'){document.getElementById('sst').value='';filterStations();_toggleClear('sst','sst-clear')}"
+        style="flex:1" autocomplete="off">
+      <button id="sst-clear" onclick="document.getElementById('sst').value='';filterStations();_toggleClear('sst','sst-clear')" title="Effacer"
+        style="display:none;background:none;border:none;cursor:pointer;color:var(--t-faint);font-size:16px;line-height:1;padding:0 2px"
+        onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='var(--t-faint)'">✕</button>
     </div>
-    <button class="btn-primary" onclick="openFormStation()">+ Nouvelle station</button>
+    <button class="btn-secondary" onclick="filterStations()"
+      style="padding:8px 14px;display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">
+      <span style="font-size:14px">🔎</span> Rechercher
+    </button>
+    <select id="fst-alerte" class="fsel" onchange="filterStations()">
+      <option value="">Toutes les stations</option>
+      <option value="alerte">⚠️ En alerte (stock &lt; 20%)</option>
+      <option value="ok">✅ Stock suffisant</option>
+    </select>
+    <button class="btn-primary" onclick="openFormStation()"
+      style="display:flex;align-items:center;gap:7px;padding:8px 18px;font-size:13px;white-space:nowrap;flex-shrink:0">
+      <span style="font-size:18px;line-height:1;font-weight:400">＋</span>
+      <span>Nouvelle station</span>
+    </button>
   </div>
   <div class="g4" style="margin-bottom:20px">
     ${kpi('Stock total',fmtL(totalStock),'L',pct(totalStock,totalCap)+'% capacité','var(--t-muted)','🛢️','#3D8EFF')}
@@ -4457,14 +4643,31 @@ function renderStations(){
     ${kpi('En alerte',''+enAlerte,'','Stock < 20%',enAlerte>0?'var(--ruby)':'var(--t-muted)','⚠️',enAlerte>0?'#FF4D4D':'#0ECB81')}
     ${kpi('Valeur stock',fmtM(totalVal),"GNF",'Gasoil','var(--t-muted)','💰','#0ECB81')}
   </div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px" id="stations-grid">
-    ${stations.length ? '' : '<div style="text-align:center;padding:60px;color:var(--t-muted)">Aucune station enregistrée</div>'}
-  </div>`;
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px" id="stations-grid"></div>
+  <div id="st-count" style="font-size:12px;color:var(--t-muted);margin-top:8px"></div>`;
 
-  // Construire les cartes sans template literals imbriqués
-  const grid = document.getElementById('stations-grid');
-  if(!grid || !stations.length) return;
-  stations.forEach(s => { grid.appendChild(buildStationCard(s)); });
+  filterStations();
+}
+
+function filterStations(){
+  const q=(document.getElementById("sst")?.value||"").toLowerCase();
+  const fa=document.getElementById("fst-alerte")?.value||"";
+  const filtered=stations.filter(s=>{
+    const matchQ=!q||`${s.nom} ${s.zone||""} ${s.type_carburant||""}`.toLowerCase().includes(q);
+    const pct=s.stock/s.capacite;
+    const matchA=!fa||(fa==="alerte"&&pct<0.2)||(fa==="ok"&&pct>=0.2);
+    return matchQ&&matchA;
+  });
+  const grid=document.getElementById("stations-grid");
+  const cnt=document.getElementById("st-count");
+  if(cnt)cnt.textContent=`${filtered.length} station${filtered.length>1?"s":""} affichée${filtered.length>1?"s":""} · ${stations.length} au total`;
+  if(!grid)return;
+  grid.innerHTML="";
+  if(!filtered.length){
+    grid.innerHTML=`<div style="text-align:center;padding:60px;color:var(--t-muted);grid-column:1/-1"><div style="font-size:40px;margin-bottom:10px">🔍</div><p>Aucune station trouvée</p></div>`;
+    return;
+  }
+  filtered.forEach(s=>grid.appendChild(buildStationCard(s)));
 }
 
 function buildStationCard(s){
@@ -5122,8 +5325,21 @@ function renderCarburant(){
   <div id="anomalie-panel"></div>
 
   <!-- FILTRES + TABLE -->
-  <div class="frow">
-    <div class="finput" style="flex:2"><span>🔍</span><input id="sfuel" placeholder="${t("fuel_search")}" oninput="filterCarburant()"></div>
+  <div class="frow" style="align-items:stretch">
+    <div class="finput" style="position:relative;min-width:220px;flex:2">
+      <span style="font-size:15px;flex-shrink:0">🔍</span>
+      <input id="sfuel" placeholder="${t("fuel_search")}"
+        oninput="filterCarburant();_toggleClear('sfuel','sfuel-clear')"
+        onkeydown="if(event.key==='Escape'){document.getElementById('sfuel').value='';filterCarburant();_toggleClear('sfuel','sfuel-clear')}"
+        style="flex:1" autocomplete="off">
+      <button id="sfuel-clear" onclick="document.getElementById('sfuel').value='';filterCarburant();_toggleClear('sfuel','sfuel-clear')" title="Effacer"
+        style="display:none;background:none;border:none;cursor:pointer;color:var(--t-faint);font-size:16px;line-height:1;padding:0 2px"
+        onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='var(--t-faint)'">✕</button>
+    </div>
+    <button class="btn-secondary" onclick="filterCarburant()"
+      style="padding:8px 14px;display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">
+      <span style="font-size:14px">🔎</span> Rechercher
+    </button>
     <select class="fsel" id="ffuel-vehicle" onchange="filterCarburant()">
       <option value="">${t("all_vehicles")}</option>
       ${[...new Set(carburant.map(x=>x.vehicle))].map(e=>`<option>${e}</option>`).join("")}
@@ -5139,7 +5355,11 @@ function renderCarburant(){
       <option value="">${lang==="en"?"All drivers":"Tous les chauffeurs"}</option>
       ${[...new Set(carburant.map(x=>x.chauffeur).filter(x=>x&&x!=="—"))].map(ch=>`<option>${ch}</option>`).join("")}
     </select>
-    <button class="btn-primary" onclick="openFormCarburant()">${t("fuel_new")}</button>
+    <button class="btn-primary" onclick="openFormCarburant()"
+      style="display:flex;align-items:center;gap:7px;padding:8px 18px;font-size:13px;white-space:nowrap;flex-shrink:0">
+      <span style="font-size:18px;line-height:1;font-weight:400">＋</span>
+      <span>${t("fuel_new")}</span>
+    </button>
   </div>
   <div id="carburant-table"></div>`;
 
@@ -5905,8 +6125,21 @@ function renderMaintenance(){
   </div>
 
   <!-- Filtres -->
-  <div class="frow" style="margin-bottom:14px">
-    <div class="finput" style="flex:2"><span>🔍</span><input id="smnt" placeholder="Rechercher véhicule, technicien, description…" oninput="filterMaint()"></div>
+  <div class="frow" style="margin-bottom:14px;align-items:stretch">
+    <div class="finput" style="position:relative;min-width:220px;flex:2">
+      <span style="font-size:15px;flex-shrink:0">🔍</span>
+      <input id="smnt" placeholder="Rechercher véhicule, technicien, description…"
+        oninput="filterMaint();_toggleClear('smnt','smnt-clear')"
+        onkeydown="if(event.key==='Escape'){document.getElementById('smnt').value='';filterMaint();_toggleClear('smnt','smnt-clear')}"
+        style="flex:1" autocomplete="off">
+      <button id="smnt-clear" onclick="document.getElementById('smnt').value='';filterMaint();_toggleClear('smnt','smnt-clear')" title="Effacer"
+        style="display:none;background:none;border:none;cursor:pointer;color:var(--t-faint);font-size:16px;line-height:1;padding:0 2px"
+        onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='var(--t-faint)'">✕</button>
+    </div>
+    <button class="btn-secondary" onclick="filterMaint()"
+      style="padding:8px 14px;display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">
+      <span style="font-size:14px">🔎</span> Rechercher
+    </button>
     <select class="fsel" id="fmnt" onchange="filterMaint()">
       <option value="">Tous les statuts</option>
       <option value="planifie">📅 Planifié</option>
@@ -5923,6 +6156,11 @@ function renderMaintenance(){
       <option value="">Tous techniciens</option>
       ${[...new Set(maintenances.map(m=>m.technicien).filter(Boolean))].map(t=>`<option>${t}</option>`).join("")}
     </select>
+    <button class="btn-primary" onclick="openFormMaintenance()"
+      style="display:flex;align-items:center;gap:7px;padding:8px 18px;font-size:13px;white-space:nowrap;flex-shrink:0">
+      <span style="font-size:18px;line-height:1;font-weight:400">＋</span>
+      <span>Planifier</span>
+    </button>
   </div>
 
   <!-- Liste -->
@@ -6158,8 +6396,21 @@ function renderQuote(){
   </div>
 
   <!-- Filtres -->
-  <div class="frow">
-    <div class="finput" style="flex:2"><span>🔍</span><input id="sdv" placeholder="${t("dv_search")}" oninput="filterQuote()"></div>
+  <div class="frow" style="align-items:stretch">
+    <div class="finput" style="position:relative;min-width:220px;flex:2">
+      <span style="font-size:15px;flex-shrink:0">🔍</span>
+      <input id="sdv" placeholder="${t("dv_search")}"
+        oninput="filterQuote();_toggleClear('sdv','sdv-clear')"
+        onkeydown="if(event.key==='Escape'){document.getElementById('sdv').value='';filterQuote();_toggleClear('sdv','sdv-clear')}"
+        style="flex:1" autocomplete="off">
+      <button id="sdv-clear" onclick="document.getElementById('sdv').value='';filterQuote();_toggleClear('sdv','sdv-clear')" title="Effacer"
+        style="display:none;background:none;border:none;cursor:pointer;color:var(--t-faint);font-size:16px;line-height:1;padding:0 2px"
+        onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='var(--t-faint)'">✕</button>
+    </div>
+    <button class="btn-secondary" onclick="filterQuote()"
+      style="padding:8px 14px;display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">
+      <span style="font-size:14px">🔎</span> Rechercher
+    </button>
     <select class="fsel" id="fdv" onchange="filterQuote()">
       <option value="">${t("all_statuses")}</option>
       ${Object.entries(dvCfg).map(([k,v])=>`<option value="${k}">${v.l}</option>`).join("")}
@@ -6168,7 +6419,11 @@ function renderQuote(){
       <option value="">${t("all_clients")}</option>
       ${[...new Set(devis.map(d=>d.client))].map(cl=>`<option>${cl}</option>`).join("")}
     </select>
-    <button class="btn-primary" onclick="openFormQuote()">${t("dv_new")}</button>
+    <button class="btn-primary" onclick="openFormQuote()"
+      style="display:flex;align-items:center;gap:7px;padding:8px 18px;font-size:13px;white-space:nowrap;flex-shrink:0">
+      <span style="font-size:18px;line-height:1;font-weight:400">＋</span>
+      <span>${t("dv_new")}</span>
+    </button>
   </div>
   <div id="devis-list"></div>`;
 
@@ -6826,11 +7081,20 @@ function renderDocuments(){
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px">
         ${catBtns}
       </div>
-      <div class="frow" style="margin-bottom:0">
-        <div class="finput" style="flex:2;min-width:200px">
-          <span style="color:var(--t-muted)">🔍</span>
-          <input type="text" placeholder="Rechercher titre, référence, vehicle…" value="${docFilter.search}" oninput="setDocFilter('search',this.value)">
+      <div class="frow" style="margin-bottom:0;align-items:stretch">
+        <div class="finput" style="flex:2;min-width:200px;position:relative">
+          <span style="color:var(--t-muted);font-size:15px;flex-shrink:0">🔍</span>
+          <input type="text" placeholder="Rechercher titre, référence, véhicule…" value="${docFilter.search}"
+            oninput="setDocFilter('search',this.value);_toggleClear('doc-search-inp','doc-search-clear')" id="doc-search-inp"
+            onkeydown="if(event.key==='Escape'){this.value='';setDocFilter('search','');_toggleClear('doc-search-inp','doc-search-clear')}">
+          <button id="doc-search-clear" onclick="document.getElementById('doc-search-inp').value='';setDocFilter('search','');_toggleClear('doc-search-inp','doc-search-clear')" title="Effacer"
+            style="display:${docFilter.search?'inline-block':'none'};background:none;border:none;cursor:pointer;color:var(--t-faint);font-size:16px;line-height:1;padding:0 2px"
+            onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='var(--t-faint)'">✕</button>
         </div>
+        <button class="btn-secondary" onclick="renderDocuments()"
+          style="padding:8px 14px;display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">
+          <span style="font-size:14px">🔎</span> Rechercher
+        </button>
         <select class="fsel" onchange="setDocFilter('statut',this.value)">
           <option value="tous" ${docFilter.statut==="tous"?"selected":""}>Tous statuts</option>
           <option value="valide" ${docFilter.statut==="valide"?"selected":""}>✅ Valide</option>
@@ -6838,6 +7102,11 @@ function renderDocuments(){
           <option value="expire" ${docFilter.statut==="expire"?"selected":""}>🚨 Expiré</option>
           <option value="na" ${docFilter.statut==="na"?"selected":""}>— N/A</option>
         </select>
+        <button class="btn-primary" onclick="openFormDocument()"
+          style="display:flex;align-items:center;gap:7px;padding:8px 18px;font-size:13px;white-space:nowrap;flex-shrink:0">
+          <span style="font-size:18px;line-height:1;font-weight:400">＋</span>
+          <span>Ajouter un document</span>
+        </button>
       </div>
     </div>
 
@@ -7797,11 +8066,21 @@ function renderIncidents(){
         <span class="card-title">📋 ${lang==="fr"?"Liste des incidents":"Liste des incidents"}</span>
         <span class="card-badge">${total} ${lang==="fr"?"enregistrés":"enregistrés"}</span>
       </div>
-      <div class="frow" style="margin-bottom:14px">
-        <div class="finput" style="min-width:200px;flex:2">
-          <span style="color:var(--t-faint)">🔍</span>
-          <input id="inc-search" placeholder="${t("filter_search")}" oninput="filterIncidents()" />
+      <div class="frow" style="margin-bottom:14px;align-items:stretch">
+        <div class="finput" style="min-width:200px;flex:2;position:relative">
+          <span style="color:var(--t-faint);font-size:15px;flex-shrink:0">🔍</span>
+          <input id="inc-search" placeholder="${t("filter_search")}"
+            oninput="filterIncidents();_toggleClear('inc-search','inc-search-clear')"
+            onkeydown="if(event.key==='Escape'){document.getElementById('inc-search').value='';filterIncidents();_toggleClear('inc-search','inc-search-clear')}"
+            style="flex:1" autocomplete="off" />
+          <button id="inc-search-clear" onclick="document.getElementById('inc-search').value='';filterIncidents();_toggleClear('inc-search','inc-search-clear')" title="Effacer"
+            style="display:none;background:none;border:none;cursor:pointer;color:var(--t-faint);font-size:16px;line-height:1;padding:0 2px"
+            onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='var(--t-faint)'">✕</button>
         </div>
+        <button class="btn-secondary" onclick="filterIncidents()"
+          style="padding:8px 14px;display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">
+          <span style="font-size:14px">🔎</span> Rechercher
+        </button>
         <select id="inc-filter-sev" class="fsel" onchange="filterIncidents()">
           <option value="">${t("filter_all")} — ${t("inc_severity")}</option>
           ${Object.entries(incSevCfg).map(([k,v])=>`<option value="${k}">${v[lang]}</option>`).join("")}
@@ -7814,6 +8093,11 @@ function renderIncidents(){
           <option value="">${t("filter_all")} — ${t("inc_type")}</option>
           ${Object.entries(incTypeCfg).map(([k,v])=>`<option value="${k}">${v.icon} ${v[lang]}</option>`).join("")}
         </select>
+        <button class="btn-primary" onclick="openFormIncident()"
+          style="display:flex;align-items:center;gap:7px;padding:8px 18px;font-size:13px;white-space:nowrap;flex-shrink:0">
+          <span style="font-size:18px;line-height:1;font-weight:400">＋</span>
+          <span>${t("inc_new")}</span>
+        </button>
       </div>
       <div class="tbl-wrap">
         <table>
@@ -8420,15 +8704,30 @@ function renderSignature(){
   const signed = signatures.filter(s=>s.statut==="signe").length;
   const pending = signatures.filter(s=>s.statut==="envoye").length;
   c.innerHTML=`
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
-    <div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-        <div style="width:3px;height:22px;background:linear-gradient(180deg,#8B5CF6,transparent);border-radius:2px"></div>
-        <div style="font-family:var(--font-ui);font-size:20px;font-weight:900;color:var(--t-bright);letter-spacing:-0.5px">Signatures Électroniques CCL</div>
-      </div>
-      <div style="font-size:11px;color:var(--t-muted);padding-left:13px;font-family:var(--font-mono)">Workflow DocuSign · \${signatures.length} documents</div>
+  <div class="frow" style="align-items:stretch;margin-bottom:18px">
+    <div class="finput" style="position:relative;min-width:220px;flex:2">
+      <span style="font-size:15px;flex-shrink:0">🔍</span>
+      <input id="ssig" placeholder="Rechercher contrat, partenaire, signataire…"
+        oninput="filterSignatures();_toggleClear('ssig','ssig-clear')"
+        onkeydown="if(event.key==='Escape'){document.getElementById('ssig').value='';filterSignatures();_toggleClear('ssig','ssig-clear')}"
+        style="flex:1" autocomplete="off">
+      <button id="ssig-clear" onclick="document.getElementById('ssig').value='';filterSignatures();_toggleClear('ssig','ssig-clear')" title="Effacer"
+        style="display:none;background:none;border:none;cursor:pointer;color:var(--t-faint);font-size:16px;line-height:1;padding:0 2px"
+        onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='var(--t-faint)'">✕</button>
     </div>
-    <button class="btn-primary" onclick="openFormSignature()">+ Nouveau workflow</button>
+    <button class="btn-secondary" onclick="filterSignatures()"
+      style="padding:8px 14px;display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">
+      <span style="font-size:14px">🔎</span> Rechercher
+    </button>
+    <select id="fsig-st" class="fsel" onchange="filterSignatures()">
+      <option value="">Tous les statuts</option>
+      ${Object.entries(sigStCfg).map(([k,v])=>`<option value="${k}">${v.l}</option>`).join("")}
+    </select>
+    <button class="btn-primary" onclick="openFormSignature()"
+      style="display:flex;align-items:center;gap:7px;padding:8px 18px;font-size:13px;white-space:nowrap;flex-shrink:0">
+      <span style="font-size:18px;line-height:1;font-weight:400">＋</span>
+      <span>Nouveau workflow</span>
+    </button>
   </div>
   <div class="g4" style="margin-bottom:18px">
     <div class="kpi" style="border-top:2px solid var(--sapphire)"><div class="kpi-label">SIGNÉS</div><div class="kpi-value">${signed}</div><div class="kpi-delta" style="color:var(--sapphire)">Contrats validés</div><div class="kpi-icon">✅</div></div>
@@ -8437,10 +8736,26 @@ function renderSignature(){
     <div class="kpi" style="border-top:2px solid #8B5CF6"><div class="kpi-label">TAUX DE SIGNATURE</div><div class="kpi-value">${Math.round(signed/signatures.length*100)}%</div><div class="kpi-delta" style="color:#8B5CF6">vs total envoyés</div><div class="kpi-icon">📊</div></div>
   </div>
   <div class="card">
-    <div class="card-head"><span class="card-title">📋 Suivi des Signatures</span><span class="card-badge">${signatures.length} documents</span></div>
+    <div class="card-head"><span class="card-title">📋 Suivi des Signatures</span><span id="sig-count" class="card-badge">${signatures.length} documents</span></div>
     <div class="tbl-wrap"><table>
       <thead><tr><th>ID</th><th>Contrat</th><th>Partenaire</th><th>Signataire</th><th>Montant</th><th>Envoyé le</th><th>Signé le</th><th>Réf. DocuSign</th><th>Statut</th><th>Actions</th></tr></thead>
-      <tbody>${signatures.map(s=>`<tr>
+      <tbody id="sig-tbody"></tbody>
+    </table></div>
+  </div>`;
+  filterSignatures();
+}
+function filterSignatures(){
+  const q  = (document.getElementById("ssig")?.value||"").toLowerCase();
+  const fs = document.getElementById("fsig-st")?.value||"";
+  const filtered = signatures.filter(s=>
+    (!q || `${s.id} ${s.contrat} ${s.partenaire} ${s.signataire}`.toLowerCase().includes(q)) &&
+    (!fs || s.statut===fs)
+  );
+  const tbody = document.getElementById("sig-tbody");
+  const cnt   = document.getElementById("sig-count");
+  if(cnt) cnt.textContent=`${filtered.length} document${filtered.length>1?"s":""}`;
+  if(!tbody) return;
+  tbody.innerHTML = filtered.length ? filtered.map(s=>`<tr>
         <td class="ref-chip" style="color:#8B5CF6;background:rgba(139,92,246,.08);border-color:rgba(139,92,246,.2)">${s.id}</td>
         <td><span class="ref-chip">${s.contrat}</span></td>
         <td>${s.partenaire}</td>
@@ -8455,9 +8770,7 @@ function renderSignature(){
           ${s.statut==="envoye"?`<button class="btn-danger" style="padding:4px 8px;font-size:11px" onclick="refuserSignature('${s.id}')">✕</button>`:""}
           <button class="btn-secondary" style="padding:4px 8px;font-size:11px" onclick="showToast('📥 Téléchargement PDF…','#3D8EFF')">⬇</button>
         </div></td>
-      </tr>`).join("")}</tbody>
-    </table></div>
-  </div>`;
+      </tr>`).join("") : `<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--t-muted)">🔍 Aucune signature trouvée</td></tr>`;
 }
 function signerContrat(id){
   const s=signatures.find(x=>x.id===id);if(!s)return;
@@ -8524,15 +8837,30 @@ let onboardings = [
 function renderOnboarding(){
   const c = document.getElementById("content");
   c.innerHTML=`
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
-    <div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-        <div style="width:3px;height:22px;background:linear-gradient(180deg,var(--emerald),transparent);border-radius:2px"></div>
-        <div style="font-family:var(--font-ui);font-size:20px;font-weight:900;color:var(--t-bright);letter-spacing:-0.5px">Onboarding Partenaires</div>
-      </div>
-      <div style="font-size:11px;color:var(--t-muted);padding-left:13px;font-family:var(--font-mono)">Inscription et validation des nouveaux partenaires</div>
+  <div class="frow" style="align-items:stretch;margin-bottom:18px">
+    <div class="finput" style="position:relative;min-width:220px;flex:2">
+      <span style="font-size:15px;flex-shrink:0">🔍</span>
+      <input id="sob" placeholder="Rechercher partenaire, contact, adresse…"
+        oninput="filterOnboarding();_toggleClear('sob','sob-clear')"
+        onkeydown="if(event.key==='Escape'){document.getElementById('sob').value='';filterOnboarding();_toggleClear('sob','sob-clear')}"
+        style="flex:1" autocomplete="off">
+      <button id="sob-clear" onclick="document.getElementById('sob').value='';filterOnboarding();_toggleClear('sob','sob-clear')" title="Effacer"
+        style="display:none;background:none;border:none;cursor:pointer;color:var(--t-faint);font-size:16px;line-height:1;padding:0 2px"
+        onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='var(--t-faint)'">✕</button>
     </div>
-    <button class="btn-primary" onclick="openFormOnboarding()">🏢 Nouvelle demande</button>
+    <button class="btn-secondary" onclick="filterOnboarding()"
+      style="padding:8px 14px;display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">
+      <span style="font-size:14px">🔎</span> Rechercher
+    </button>
+    <select id="fob-st" class="fsel" onchange="filterOnboarding()">
+      <option value="">Tous les statuts</option>
+      ${Object.entries(obStCfg).map(([k,v])=>`<option value="${k}">${v.l}</option>`).join("")}
+    </select>
+    <button class="btn-primary" onclick="openFormOnboarding()"
+      style="display:flex;align-items:center;gap:7px;padding:8px 18px;font-size:13px;white-space:nowrap;flex-shrink:0">
+      <span style="font-size:18px;line-height:1;font-weight:400">＋</span>
+      <span>Nouvelle demande</span>
+    </button>
   </div>
   <div class="g4" style="margin-bottom:18px">
     ${Object.entries(obStCfg).map(([k,v])=>{
@@ -8541,9 +8869,23 @@ function renderOnboarding(){
     }).join("")}
   </div>
   <div class="card">
-    <div class="card-head"><span class="card-title">📋 Dossiers d'Inscription</span><span class="card-badge">${onboardings.length} dossiers</span></div>
-    <div style="display:flex;flex-direction:column;gap:10px">
-      ${onboardings.map(ob=>`
+    <div class="card-head"><span class="card-title">📋 Dossiers d'Inscription</span><span id="ob-count" class="card-badge">${onboardings.length} dossiers</span></div>
+    <div id="ob-list" style="display:flex;flex-direction:column;gap:10px"></div>
+  </div>`;
+  filterOnboarding();
+}
+function filterOnboarding(){
+  const q  = (document.getElementById("sob")?.value||"").toLowerCase();
+  const fs = document.getElementById("fob-st")?.value||"";
+  const filtered = onboardings.filter(ob=>
+    (!q || `${ob.nom} ${ob.contact} ${ob.adresse} ${ob.tel}`.toLowerCase().includes(q)) &&
+    (!fs || ob.statut===fs)
+  );
+  const el  = document.getElementById("ob-list");
+  const cnt = document.getElementById("ob-count");
+  if(cnt) cnt.textContent=`${filtered.length} dossier${filtered.length>1?"s":""}`;
+  if(!el) return;
+  el.innerHTML = filtered.length ? filtered.map(ob=>`
       <div style="background:var(--bg-void);border:1px solid ${ob.statut==="soumis"||ob.statut==="en_verification"?"rgba(255,154,60,.2)":ob.statut==="valide"?"rgba(61,142,255,.18)":"rgba(255,77,77,.2)"};border-radius:10px;padding:14px 16px">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
           <div style="flex:1">
@@ -8573,9 +8915,7 @@ function renderOnboarding(){
             ${ob.statut==="valide"?`<button class="btn-primary" style="padding:5px 11px;font-size:11px" onclick="convertirEnPartenaire('${ob.id}')">🤝 Activer partenaire</button>`:""}
           </div>
         </div>
-      </div>`).join("")}
-    </div>
-  </div>`;
+      </div>`).join("") : `<div style="text-align:center;padding:40px;color:var(--t-muted)"><div style="font-size:36px;margin-bottom:10px">🔍</div><p>Aucun dossier trouvé</p></div>`;
 }
 function validerOnboarding(id){const o=onboardings.find(x=>x.id===id);if(o)o.statut="valide";showToast("✅ Dossier validé","var(--sapphire)");renderOnboarding();}
 function rejeterOnboarding(id){const o=onboardings.find(x=>x.id===id);if(o)o.statut="rejete";showToast("✕ Dossier rejeté","var(--ruby)");renderOnboarding();}
@@ -8647,15 +8987,35 @@ function renderUtilisateurs(){
   const totalActive   = utilisateurs.filter(u=>u.active).length;
   const totalInactive = utilisateurs.filter(u=>!u.active).length;
   c.innerHTML=`
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
-    <div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-        <div style="width:3px;height:22px;background:linear-gradient(180deg,var(--ruby),transparent);border-radius:2px"></div>
-        <div style="font-family:var(--font-ui);font-size:20px;font-weight:900;color:var(--t-bright);letter-spacing:-0.5px">Utilisateurs & Rôles</div>
-      </div>
-      <div style="font-size:11px;color:var(--t-muted);padding-left:13px;font-family:var(--font-mono)">Gestion des accès — ${utilisateurs.length} comptes · ${totalActive} actifs · ${totalInactive} inactifs</div>
+  <div class="frow" style="align-items:stretch;margin-bottom:18px">
+    <div class="finput" style="position:relative;min-width:220px;flex:2">
+      <span style="font-size:15px;flex-shrink:0">🔍</span>
+      <input id="usr-search" placeholder="Rechercher utilisateur, email, rôle…"
+        oninput="filterUtilisateurs();_toggleClear('usr-search','usr-search-clear')"
+        onkeydown="if(event.key==='Escape'){document.getElementById('usr-search').value='';filterUtilisateurs();_toggleClear('usr-search','usr-search-clear')}"
+        style="flex:1" autocomplete="off">
+      <button id="usr-search-clear" onclick="document.getElementById('usr-search').value='';filterUtilisateurs();_toggleClear('usr-search','usr-search-clear')" title="Effacer"
+        style="display:none;background:none;border:none;cursor:pointer;color:var(--t-faint);font-size:16px;line-height:1;padding:0 2px"
+        onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='var(--t-faint)'">✕</button>
     </div>
-    <button class="btn-primary" onclick="openFormUtilisateur()">+ Nouvel utilisateur</button>
+    <button class="btn-secondary" onclick="filterUtilisateurs()"
+      style="padding:8px 14px;display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">
+      <span style="font-size:14px">🔎</span> Rechercher
+    </button>
+    <select id="usr-role-filter" class="fsel" onchange="filterUtilisateurs()">
+      <option value="">Tous les rôles</option>
+      ${Object.entries(rolesCfg).map(([k,v])=>`<option value="${k}">${v.l}</option>`).join("")}
+    </select>
+    <select id="usr-status-filter" class="fsel" onchange="filterUtilisateurs()">
+      <option value="">Tous les statuts</option>
+      <option value="actif">✅ Actifs</option>
+      <option value="inactif">⭕ Inactifs</option>
+    </select>
+    <button class="btn-primary" onclick="openFormUtilisateur()"
+      style="display:flex;align-items:center;gap:7px;padding:8px 18px;font-size:13px;white-space:nowrap;flex-shrink:0">
+      <span style="font-size:18px;line-height:1;font-weight:400">＋</span>
+      <span>Nouvel utilisateur</span>
+    </button>
   </div>
 
   <!-- KPIs par rôle -->
@@ -8676,13 +9036,7 @@ function renderUtilisateurs(){
     <div class="card">
       <div class="card-head">
         <span class="card-title">👤 Comptes Utilisateurs</span>
-        <div style="display:flex;gap:8px;align-items:center">
-          <div class="finput" style="width:200px"><span>🔍</span><input id="usr-search" placeholder="Rechercher…" oninput="filterUtilisateurs()"></div>
-          <select id="usr-role-filter" class="fsel" style="font-size:11px" onchange="filterUtilisateurs()">
-            <option value="">Tous les rôles</option>
-            ${Object.entries(rolesCfg).map(([k,v])=>`<option value="${k}">${v.l}</option>`).join("")}
-          </select>
-        </div>
+        <span id="usr-count" class="card-badge">${utilisateurs.length} comptes</span>
       </div>
       <div id="usr-list" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
@@ -8712,13 +9066,17 @@ function renderUtilisateurs(){
 }
 
 function filterUtilisateurs(){
-  const q    = (document.getElementById("usr-search")?.value||"").toLowerCase();
-  const role = document.getElementById("usr-role-filter")?.value||"";
+  const q      = (document.getElementById("usr-search")?.value||"").toLowerCase();
+  const role   = document.getElementById("usr-role-filter")?.value||"";
+  const status = document.getElementById("usr-status-filter")?.value||"";
   const list = utilisateurs.filter(u=>
-    (!q || `${u.name} ${u.email} ${u.companyId}`.toLowerCase().includes(q)) &&
-    (!role || u.role===role)
+    (!q || `${u.name} ${u.email} ${u.companyId} ${u.role}`.toLowerCase().includes(q)) &&
+    (!role || u.role===role) &&
+    (!status || (status==="actif"?u.active:!u.active))
   );
-  const el = document.getElementById("usr-list");
+  const el  = document.getElementById("usr-list");
+  const cnt = document.getElementById("usr-count");
+  if(cnt) cnt.textContent=`${list.length} compte${list.length>1?"s":""}`;
   if(!el) return;
   if(!list.length){
     el.innerHTML=`<div style="text-align:center;padding:40px;color:var(--t-muted)"><div style="font-size:32px;margin-bottom:10px">👥</div>Aucun utilisateur trouvé</div>`;
@@ -9000,8 +9358,21 @@ function renderCompanies(){
       </div>`).join("")}
   </div>
 
-  <div class="frow" style="margin-bottom:14px">
-    <div class="finput" style="flex:2"><span>🔍</span><input id="co-search" placeholder="Rechercher…" oninput="filterCompanies()"></div>
+  <div class="frow" style="margin-bottom:14px;align-items:stretch">
+    <div class="finput" style="position:relative;min-width:220px;flex:2">
+      <span style="font-size:15px;flex-shrink:0">🔍</span>
+      <input id="co-search" placeholder="Rechercher entreprise, plan, statut…"
+        oninput="filterCompanies();_toggleClear('co-search','co-search-clear')"
+        onkeydown="if(event.key==='Escape'){document.getElementById('co-search').value='';filterCompanies();_toggleClear('co-search','co-search-clear')}"
+        style="flex:1" autocomplete="off">
+      <button id="co-search-clear" onclick="document.getElementById('co-search').value='';filterCompanies();_toggleClear('co-search','co-search-clear')" title="Effacer"
+        style="display:none;background:none;border:none;cursor:pointer;color:var(--t-faint);font-size:16px;line-height:1;padding:0 2px"
+        onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='var(--t-faint)'">✕</button>
+    </div>
+    <button class="btn-secondary" onclick="filterCompanies()"
+      style="padding:8px 14px;display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">
+      <span style="font-size:14px">🔎</span> Rechercher
+    </button>
     <select id="co-plan" class="fsel" onchange="filterCompanies()">
       <option value="">Tous les plans</option>
       ${Object.entries(planCfg).map(([k,v])=>`<option value="${k}">${v.l}</option>`).join("")}
@@ -9011,6 +9382,11 @@ function renderCompanies(){
       <option value="active">Actif</option>
       <option value="inactive">Inactif</option>
     </select>
+    <button class="btn-primary" onclick="openFormCompany()"
+      style="display:flex;align-items:center;gap:7px;padding:8px 18px;font-size:13px;white-space:nowrap;flex-shrink:0">
+      <span style="font-size:18px;line-height:1;font-weight:400">＋</span>
+      <span>Nouvelle entreprise</span>
+    </button>
   </div>
 
   <div id="companies-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px"></div>`;
@@ -9444,8 +9820,21 @@ function renderFactures(){
   </div>
 
   <!-- Filtres + Table -->
-  <div class="frow">
-    <div class="finput" style="flex:2"><span>🔍</span><input id="sfac" placeholder="${t("inv_search")}" oninput="filterFactures()"></div>
+  <div class="frow" style="align-items:stretch">
+    <div class="finput" style="position:relative;min-width:220px;flex:2">
+      <span style="font-size:15px;flex-shrink:0">🔍</span>
+      <input id="sfac" placeholder="${t("inv_search")}"
+        oninput="filterFactures();_toggleClear('sfac','sfac-clear')"
+        onkeydown="if(event.key==='Escape'){document.getElementById('sfac').value='';filterFactures();_toggleClear('sfac','sfac-clear')}"
+        style="flex:1" autocomplete="off">
+      <button id="sfac-clear" onclick="document.getElementById('sfac').value='';filterFactures();_toggleClear('sfac','sfac-clear')" title="Effacer"
+        style="display:none;background:none;border:none;cursor:pointer;color:var(--t-faint);font-size:16px;line-height:1;padding:0 2px"
+        onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='var(--t-faint)'">✕</button>
+    </div>
+    <button class="btn-secondary" onclick="filterFactures()"
+      style="padding:8px 14px;display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap">
+      <span style="font-size:14px">🔎</span> Rechercher
+    </button>
     <select class="fsel" id="ffac-st" onchange="filterFactures()">
       <option value="">${t("all_statuses")}</option>
       ${Object.entries(facCfg).map(([k,v])=>`<option value="${k}">${v.l}</option>`).join("")}
@@ -9454,7 +9843,11 @@ function renderFactures(){
       <option value="">${t("all_clients")}</option>
       ${[...new Set(factures.map(f=>f.client))].map(cl=>`<option>${cl}</option>`).join("")}
     </select>
-    <button class="btn-primary" onclick="openFormFacture()">${t("inv_new")}</button>
+    <button class="btn-primary" onclick="openFormFacture()"
+      style="display:flex;align-items:center;gap:7px;padding:8px 18px;font-size:13px;white-space:nowrap;flex-shrink:0">
+      <span style="font-size:18px;line-height:1;font-weight:400">＋</span>
+      <span>${t("inv_new")}</span>
+    </button>
   </div>
   <div id="factures-table"></div>`;
 
@@ -10577,6 +10970,93 @@ const FIREBASE_CONFIG = {
   appId:             "1:466170257450:web:433e05d11b4ace025aa353"
 };
 
+// ══════════════════════════════════════════════════════
+//  CLOUDINARY — Configuration
+//
+//  Étapes pour activer :
+//    1. Créer un compte sur https://cloudinary.com (plan gratuit : 25 Go)
+//    2. Tableau de bord → Settings → Upload → Add upload preset
+//       • Mode : Unsigned
+//       • Folder : noldex-fleet
+//       • Copier le nom du preset dans CLOUDINARY_UPLOAD_PRESET
+//    3. Copier votre Cloud Name depuis le tableau de bord
+//       dans CLOUDINARY_CLOUD_NAME
+//    4. (Optionnel) Activer la transformation automatique :
+//       photos véhicules → redimensionnement 800×600, qualité auto
+//
+//  Fallback : si Cloudinary n'est pas configuré, l'app bascule
+//  automatiquement sur Firebase Storage (si dispo) puis localStorage.
+// ══════════════════════════════════════════════════════
+const CLOUDINARY_CONFIG = {
+  cloudName    : "VOTRE_CLOUD_NAME",      // ex: "noldex-fleet-abc123"
+  uploadPreset : "VOTRE_UPLOAD_PRESET",   // ex: "noldex_unsigned"
+  folder       : "noldex-fleet",          // dossier racine dans Cloudinary
+
+  // Sous-dossiers par type de fichier
+  folders: {
+    vehiclePhotos  : "noldex-fleet/vehicles",
+    documents      : "noldex-fleet/documents",
+    driverLicenses : "noldex-fleet/drivers",
+  },
+
+  // Transformations automatiques (appliquées côté Cloudinary)
+  transforms: {
+    vehiclePhoto  : "w_800,h_600,c_fill,q_auto,f_auto",
+    driverLicense : "w_600,h_400,c_fit,q_auto,f_auto",
+    document      : "",  // PDF — pas de transformation image
+  },
+};
+
+// ══════════════════════════════════════════════════════
+//  CHARGEMENT CONFIG DEPUIS LOCALSTORAGE (au démarrage)
+// ══════════════════════════════════════════════════════
+(function loadSavedConfigs(){
+  try{
+    const fbSaved = JSON.parse(localStorage.getItem("nf_firebase_config") || "null");
+    if(fbSaved && fbSaved.apiKey && fbSaved.projectId){
+      Object.assign(FIREBASE_CONFIG, fbSaved);
+    }
+  } catch(e){}
+  try{
+    const clSaved = JSON.parse(localStorage.getItem("nf_cloudinary_config") || "null");
+    if(clSaved && clSaved.cloudName){
+      Object.assign(CLOUDINARY_CONFIG, clSaved);
+    }
+  } catch(e){}
+})();
+
+// ── Vérifie si Cloudinary est correctement configuré ──
+function cloudinaryReady(){
+  return (
+    CLOUDINARY_CONFIG.cloudName    !== "VOTRE_CLOUD_NAME" &&
+    CLOUDINARY_CONFIG.uploadPreset !== "VOTRE_UPLOAD_PRESET" &&
+    CLOUDINARY_CONFIG.cloudName.length > 0 &&
+    CLOUDINARY_CONFIG.uploadPreset.length > 0
+  );
+}
+
+// ── Upload générique vers Cloudinary via l'API Upload non-signée ──
+// Retourne l'URL sécurisée (https) du fichier uploadé
+async function cloudinaryUpload(file, folder, transformation = ""){
+  if(!cloudinaryReady()) throw new Error("Cloudinary non configuré");
+
+  const formData = new FormData();
+  formData.append("file",           file);
+  formData.append("upload_preset",  CLOUDINARY_CONFIG.uploadPreset);
+  formData.append("folder",         folder);
+  if(transformation) formData.append("transformation", transformation);
+
+  const endpoint = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/auto/upload`;
+
+  const res = await fetch(endpoint, { method: "POST", body: formData });
+  if(!res.ok){
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Cloudinary HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  return data.secure_url; // URL HTTPS permanente
+}
+
 // ── Initialisation Firebase ──
 let fbApp, fbAuth, fbDb, fbStorage;
 let currentUser      = null;
@@ -10850,24 +11330,31 @@ async function storageGetUrl(path){
 //  PHOTOS VÉHICULES — vehicles/{vehicleId}/photo.jpg
 // ══════════════════════════════════════════════════════
 async function uploadVehiclePhotoToStorage(vehicleId, file){
-  if(!fbStorage){
-    // Fallback localStorage si Firebase non disponible
-    const reader = new FileReader();
-    reader.onload = e => {
-      saveVehiclePhoto(vehicleId, e.target.result);
-      showToast("📷 Photo enregistrée (local) !", "var(--emerald)");
-      openVehicleModal(vehicleId);
-      renderView(currentView);
-    };
-    reader.readAsDataURL(file);
-    return;
-  }
+  showToast("⬆ Upload photo…", "var(--amber)");
   try{
-    showToast("⬆ Upload photo…", "var(--amber)");
-    const path = STORAGE_PATHS.vehiclePhoto(vehicleId);
-    const url  = await storageUpload(path, file, "image/jpeg");
+    let url = null;
+    // 1. Priorité : Cloudinary
+    if(cloudinaryReady()){
+      url = await cloudinaryUpload(file, CLOUDINARY_CONFIG.folders.vehiclePhotos, CLOUDINARY_CONFIG.transforms.vehiclePhoto);
+      console.info("[Cloudinary] Photo véhicule uploadée ✓", url);
+    }
+    // 2. Fallback : Firebase Storage
+    else if(fbStorage){
+      url = await storageUpload(STORAGE_PATHS.vehiclePhoto(vehicleId), file, "image/jpeg");
+      console.info("[Firebase Storage] Photo véhicule uploadée ✓");
+    }
+    // 3. Dernier recours : localStorage base64
+    else{
+      url = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = e => res(e.target.result);
+        r.onerror = rej;
+        r.readAsDataURL(file);
+      });
+      console.info("[localStorage] Photo base64");
+    }
+    if(!url) throw new Error("URL vide après upload");
     vehiclePhotos[vehicleId] = url;
-    // Persister l'URL dans Firestore et localStorage
     await fbSave("vehicles", vehicleId, { photoUrl: url });
     try{ localStorage.setItem(PHOTO_LS_PREFIX + vehicleId, url); }catch(e){}
     showToast("📷 Photo uploadée !", "var(--emerald)");
@@ -10875,6 +11362,7 @@ async function uploadVehiclePhotoToStorage(vehicleId, file){
     renderView(currentView);
   } catch(e){
     showToast("❌ Erreur upload photo : " + e.message, "var(--ruby)");
+    console.error("[Upload photo]", e);
   }
 }
 
@@ -10890,23 +11378,32 @@ function uploadVehiclePhoto(vehicleId, input){
 //  DOCUMENTS PDF — documents/{companyId}/{docId}.pdf
 // ══════════════════════════════════════════════════════
 async function uploadDocumentToStorage(docId, file){
-  if(!fbStorage){
-    showToast("⚠ Firebase Storage requis pour les documents", "var(--topaz)");
-    return null;
-  }
+  showToast("⬆ Upload document…", "var(--amber)");
   try{
-    showToast("⬆ Upload document…", "var(--amber)");
-    const path = STORAGE_PATHS.document(currentCompanyId, docId);
-    const url  = await storageUpload(path, file, "application/pdf");
-    // Persister l'URL dans Firestore sur le document
+    let url = null;
+    // 1. Priorité : Cloudinary (supporte les PDFs via resource_type=auto)
+    if(cloudinaryReady()){
+      url = await cloudinaryUpload(file, CLOUDINARY_CONFIG.folders.documents, CLOUDINARY_CONFIG.transforms.document);
+      console.info("[Cloudinary] Document uploadé ✓", url);
+    }
+    // 2. Fallback : Firebase Storage
+    else if(fbStorage){
+      url = await storageUpload(STORAGE_PATHS.document(currentCompanyId, docId), file, "application/pdf");
+      console.info("[Firebase Storage] Document uploadé ✓");
+    }
+    else{
+      showToast("⚠ Aucun service de stockage configuré (Cloudinary ou Firebase)", "var(--topaz)");
+      return null;
+    }
+    if(!url) throw new Error("URL vide après upload");
     await fbSave("documents", docId, { url });
-    // Mettre à jour l'objet local
     const doc = documents.find(d => d.id === docId);
     if(doc) doc.url = url;
     showToast("📄 Document uploadé !", "var(--emerald)");
     return url;
   } catch(e){
     showToast("❌ Erreur upload document : " + e.message, "var(--ruby)");
+    console.error("[Upload document]", e);
     return null;
   }
 }
@@ -10915,17 +11412,25 @@ async function uploadDocumentToStorage(docId, file){
 //  PERMIS CHAUFFEURS — drivers/{driverId}/license.jpg
 // ══════════════════════════════════════════════════════
 async function uploadDriverLicenseToStorage(driverId, file){
-  if(!fbStorage){
-    showToast("⚠ Firebase Storage requis pour les permis", "var(--topaz)");
-    return null;
-  }
+  showToast("⬆ Upload permis…", "var(--amber)");
   try{
-    showToast("⬆ Upload permis…", "var(--amber)");
-    const path = STORAGE_PATHS.driverLicense(driverId);
-    const url  = await storageUpload(path, file, "image/jpeg");
-    // Persister l'URL dans Firestore sur le chauffeur
+    let url = null;
+    // 1. Priorité : Cloudinary
+    if(cloudinaryReady()){
+      url = await cloudinaryUpload(file, CLOUDINARY_CONFIG.folders.driverLicenses, CLOUDINARY_CONFIG.transforms.driverLicense);
+      console.info("[Cloudinary] Permis chauffeur uploadé ✓", url);
+    }
+    // 2. Fallback : Firebase Storage
+    else if(fbStorage){
+      url = await storageUpload(STORAGE_PATHS.driverLicense(driverId), file, "image/jpeg");
+      console.info("[Firebase Storage] Permis uploadé ✓");
+    }
+    else{
+      showToast("⚠ Aucun service de stockage configuré (Cloudinary ou Firebase)", "var(--topaz)");
+      return null;
+    }
+    if(!url) throw new Error("URL vide après upload");
     await fbSave("chauffeurs", driverId, { licenseUrl: url });
-    // Mettre à jour l'objet local
     const drv = chauffeurs.find(c => c.id === driverId);
     if(drv) drv.licenseUrl = url;
     showToast("🪪 Permis uploadé !", "var(--emerald)");
@@ -10933,6 +11438,7 @@ async function uploadDriverLicenseToStorage(driverId, file){
     return url;
   } catch(e){
     showToast("❌ Erreur upload permis : " + e.message, "var(--ruby)");
+    console.error("[Upload permis]", e);
     return null;
   }
 }
@@ -11023,7 +11529,9 @@ async function loadAllFromFirestore(){
       fbFleet, fbPartners, fbDemandes, fbContrats, fbMaintenances,
       fbPaiements, fbCarburant, fbStations, fbDevis, fbAffectations,
       fbChauffeurs, fbFactures, fbDocuments, fbIncidents,
-      fbAlerts, fbMessages
+      fbAlerts, fbMessages,
+      // FIX — chargement des collections manquantes
+      fbUtilisateurs, fbCompanies, fbGpsZones, fbVitesseAlertes
     ] = await Promise.all([
       fbLoad("vehicles"), fbLoad("partners"), fbLoad("demandes"),
       fbLoad("contrats"), fbLoad("maintenances"), fbLoad("paiements"),
@@ -11031,6 +11539,9 @@ async function loadAllFromFirestore(){
       fbLoad("affectations"), fbLoad("chauffeurs"), fbLoad("factures"),
       fbLoad("documents"), fbLoad("incidents"), fbLoad("alerts"),
       fbLoad("messages"),
+      // FIX
+      fbLoad("utilisateurs"), fbLoad("companies"),
+      fbLoad("gps_zones"), fbLoad("vitesse_alertes"),
     ]);
 
     // On ne remplace que si Firestore a des données
@@ -11050,6 +11561,18 @@ async function loadAllFromFirestore(){
     if(fbIncidents    && fbIncidents.length)    incidents     = fbIncidents;
     if(fbAlerts       && fbAlerts.length)       alerts        = fbAlerts;
     if(fbMessages     && fbMessages.length)     messages      = fbMessages;
+    // FIX — affectation des collections nouvellement chargées
+    if(fbUtilisateurs && fbUtilisateurs.length) utilisateurs  = fbUtilisateurs;
+    if(fbCompanies    && fbCompanies.length)    companies     = fbCompanies;
+    if(fbGpsZones     && fbGpsZones.length     && typeof gpsZones      !== "undefined") gpsZones       = fbGpsZones;
+    if(fbVitesseAlertes && fbVitesseAlertes.length && typeof vitesseAlertes !== "undefined") vitesseAlertes = fbVitesseAlertes;
+    // FIX — si Firestore a des vraies données utilisateurs, on écrase les démos hardcodées
+    // (évite la persistance des faux comptes @noldex.com sur un nouveau déploiement)
+    if(fbUtilisateurs && fbUtilisateurs.length > 0){
+      console.info("[Firestore] Utilisateurs réels chargés — données démo ignorées ✓");
+    } else {
+      console.info("[Firestore] Aucun utilisateur en base — données démo actives (localStorage)");
+    }
 
     // Charger photos (URLs depuis Firestore ou localStorage)
     fleet.forEach(v => {
@@ -11091,22 +11614,27 @@ async function saveAll(){
   const push = (col_, arr) => arr.forEach(item => {
     writes.push(fbSave(col_, item.id || item._fbId || Date.now(), item));
   });
-  push("vehicles",     fleet);
-  push("partners",     partners);
-  push("demandes",     demandes);
-  push("contrats",     contrats);
-  push("maintenances", maintenances);
-  push("paiements",    paiements);
-  push("carburant",    carburant);
-  push("stations",     stations);
-  push("devis",        devis);
-  push("affectations", affectations);
-  push("chauffeurs",   chauffeurs);
-  push("factures",     factures);
-  push("documents",    documents);
-  push("incidents",    incidents);
-  push("alerts",       alerts);
-  push("messages",     messages);
+  push("vehicles",      fleet);
+  push("partners",      partners);
+  push("demandes",      demandes);
+  push("contrats",      contrats);
+  push("maintenances",  maintenances);
+  push("paiements",     paiements);
+  push("carburant",     carburant);
+  push("stations",      stations);
+  push("devis",         devis);
+  push("affectations",  affectations);
+  push("chauffeurs",    chauffeurs);
+  push("factures",      factures);
+  push("documents",     documents);
+  push("incidents",     incidents);
+  push("alerts",        alerts);
+  push("messages",      messages);
+  // FIX — collections manquantes désormais synchronisées en Firestore
+  push("utilisateurs",  utilisateurs);
+  push("companies",     companies);
+  if(typeof gpsZones      !== "undefined" && gpsZones.length)      push("gps_zones",       gpsZones);
+  if(typeof vitesseAlertes!== "undefined" && vitesseAlertes.length) push("vitesse_alertes", vitesseAlertes);
   try{
     await Promise.all(writes);
     _saveLocalStorage(); // cache local aussi
@@ -11157,7 +11685,7 @@ function hideSyncIndicator(){
 }
 
 // ══════════════════════════════════════════════════════
-//  RÈGLES FIRESTORE — FIX #16
+//  RÈGLES FIRESTORE — v27 FIX
 //  ⚠️ Ces règles sont ici à titre de RÉFÉRENCE uniquement.
 //  Elles ne s'appliquent PAS automatiquement.
 //
@@ -11167,6 +11695,12 @@ function hideSyncIndicator(){
 //
 //  Tant que ce déploiement n'est pas fait, votre base
 //  Firestore n'est PAS protégée par ces règles.
+//
+//  FIX v27 :
+//    - Ajout couverture utilisateurs, companies (racine)
+//    - Ajout gps_zones et vitesse_alertes sous /companies/
+//    - vehicle_locations isolé par companyId
+//      (lecture filtrée, plus d'accès cross-company)
 // ══════════════════════════════════════════════════════
 /*
 rules_version = '2';
@@ -11193,38 +11727,29 @@ service cloud.firestore {
       return isAuth() && companyOf() == cid;
     }
 
-    // ── Structure : /companies/{companyId}/{collection}/{docId} ──
+    // ── Collections sous /companies/{companyId}/{collection}/{docId} ──
+    // Couvre : vehicles, partners, demandes, contrats, maintenances,
+    //          paiements, carburant, stations, devis, affectations,
+    //          chauffeurs, factures, documents, incidents, alerts,
+    //          messages, utilisateurs, gps_zones, vitesse_alertes
     match /companies/{companyId}/{collection}/{docId} {
-
-      // Lecture : membre de la même entreprise
       allow read: if isSameCompany(companyId);
-
-      // Création : membre de la même entreprise
-      //   + le document doit porter le bon companyId
       allow create: if isSameCompany(companyId)
         && request.resource.data.companyId == companyId;
-
-      // Modification : membre de la même entreprise
-      //   on ne peut pas changer le companyId d'un document
       allow update: if isSameCompany(companyId)
         && request.resource.data.companyId == companyId
         && resource.data.companyId == companyId;
-
-      // Suppression : managers et admins seulement
       allow delete: if isSameCompany(companyId) && isManager();
     }
 
-    // ── GPS Temps Réel : vehicle_locations/{vehicleId} ──
-    //    Lecture : tout utilisateur authentifié de la même entreprise
-    //    Écriture : uniquement le backend/device GPS (via service account)
-    //    Note : le vehicleId doit correspondre à un document dans /companies/{cid}/vehicles/
-    match /vehicle_locations/{vehicleId} {
-      allow read:  if isAuth();
-      allow write: if isAuth() && isManager(); // ou via Firebase Admin SDK uniquement
+    // ── GPS Temps Réel : /companies/{companyId}/vehicle_locations/{vehicleId} ──
+    // FIX : isolé par companyId — plus de lecture cross-company
+    match /companies/{companyId}/vehicle_locations/{vehicleId} {
+      allow read:  if isSameCompany(companyId);
+      allow write: if isSameCompany(companyId) && isManager();
     }
 
-    // ── Profils utilisateurs : chaque user lit/écrit son propre doc ──
-    //    Les admins peuvent lire tous les users de leur entreprise
+    // ── Profils utilisateurs (collection racine /users/) ──
     match /users/{userId} {
       allow read:  if request.auth.uid == userId
                    || (isAuth() && isAdmin()
@@ -11234,7 +11759,8 @@ service cloud.firestore {
                               && request.resource.data.companyId == companyOf();
     }
 
-    // ── Métadonnées des entreprises : admins uniquement ──
+    // ── Métadonnées entreprises (/companies/{companyId}) ──
+    // FIX : ajout couverture explicite (était absent hors sous-collections)
     match /companies/{companyId} {
       allow read:   if isSameCompany(companyId);
       allow write:  if isSameCompany(companyId) && isAdmin();
@@ -11270,6 +11796,9 @@ function startRealtimeListeners(){
     { col: "incidents",    set: d => { incidents = d; } },
     { col: "alerts",       set: d => { alerts = d; } },
     { col: "messages",     set: d => { messages = d; } },
+    // FIX — listeners temps réel pour utilisateurs et companies
+    { col: "utilisateurs", set: d => { utilisateurs = d; } },
+    { col: "companies",    set: d => { companies = d; } },
   ];
   liveCollections.forEach(({ col: c, set }) => {
     const unsub = fbListen(c, data => {
@@ -11709,6 +12238,405 @@ async function writeVehicleLocation(vehicleId, lat, lng, speed, heading){
 function getVehicleLiveLocation(vehicleId){
   return vehicleLocations[vehicleId] || null;
 }
+// ══════════════════════════════════════════════════════
+//  VUE PARAMÈTRES — REMISE À ZÉRO SYSTÈME
+// ══════════════════════════════════════════════════════
+function renderParametres(){
+  const c = document.getElementById("content");
+
+  // Calculer les stats localStorage pour l'affichage
+  let lsCount = 0, lsSize = 0;
+  try {
+    Object.values(LS_KEYS).forEach(k => {
+      const v = localStorage.getItem(k);
+      if(v){ lsCount++; lsSize += v.length; }
+    });
+  } catch(e){}
+  const lsSizeKb = (lsSize / 1024).toFixed(1);
+
+  const totalRecords = fleet.length + partners.length + demandes.length +
+    contrats.length + maintenances.length + paiements.length +
+    carburant.length + devis.length + chauffeurs.length +
+    factures.length + documents.length + incidents.length +
+    affectations.length + stations.length + utilisateurs.length + companies.length;
+
+  c.innerHTML = `
+    <div style="max-width:760px;margin:0 auto">
+
+      <!-- En-tête page -->
+      <div style="margin-bottom:28px">
+        <div style="font-family:var(--font-head);font-size:26px;font-weight:800;color:var(--t-bright);margin-bottom:6px">⚙️ Paramètres système</div>
+        <div style="font-size:13px;color:var(--t-muted)">Configuration générale, gestion des données et remise à zéro de l'application.</div>
+      </div>
+
+      <!-- Carte état données -->
+      <div class="card" style="margin-bottom:18px">
+        <div class="card-head">
+          <span class="card-title">💾 État des données locales</span>
+          <span class="card-badge">${lsCount} clés localStorage</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;position:relative;z-index:1">
+          <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center">
+            <div style="font-size:22px;font-weight:800;color:var(--amber);font-family:var(--font-mono)">${totalRecords}</div>
+            <div style="font-size:10px;color:var(--t-muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;font-family:var(--font-mono)">Enregistrements</div>
+          </div>
+          <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center">
+            <div style="font-size:22px;font-weight:800;color:var(--sapphire);font-family:var(--font-mono)">${lsSizeKb} Ko</div>
+            <div style="font-size:10px;color:var(--t-muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;font-family:var(--font-mono)">Stockage utilisé</div>
+          </div>
+          <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center">
+            <div style="font-size:22px;font-weight:800;color:var(--emerald);font-family:var(--font-mono)">${fleet.length}</div>
+            <div style="font-size:10px;color:var(--t-muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;font-family:var(--font-mono)">Véhicules</div>
+          </div>
+        </div>
+        <div style="margin-top:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;position:relative;z-index:1">
+          ${[
+            ["Chauffeurs",     chauffeurs.length],
+            ["Partenaires",    partners.length],
+            ["Contrats",       contrats.length],
+            ["Paiements",      paiements.length],
+            ["Carburant",      carburant.length],
+            ["Maintenance",    maintenances.length],
+            ["Devis",          devis.length],
+            ["Factures",       factures.length],
+            ["Documents",      documents.length],
+            ["Incidents",      incidents.length],
+            ["Utilisateurs",   utilisateurs.length],
+            ["Entreprises",    companies.length],
+          ].map(([lbl,val])=>`
+            <div style="background:var(--bg-card-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:11px;color:var(--t-muted)">${lbl}</span>
+              <span style="font-size:13px;font-weight:700;color:var(--t-bright);font-family:var(--font-mono)">${val}</span>
+            </div>`).join("")}
+        </div>
+      </div>
+
+      <!-- Langue -->
+      <div class="card" style="margin-bottom:18px">
+        <div class="card-head">
+          <span class="card-title">🌐 Langue de l'interface</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;position:relative;z-index:1">
+          <div style="font-size:13px;color:var(--t-muted);flex:1">Langue active : <strong style="color:var(--t-bright)">${lang==="fr"?"Français 🇫🇷":"English 🇬🇧"}</strong></div>
+          <button class="btn-secondary" onclick="toggleLang();renderParametres()" style="height:34px;font-size:12px;padding:0 16px">
+            ${lang==="fr"?"Passer en anglais":"Switch to French"}
+          </button>
+        </div>
+      </div>
+
+      <!-- Zone de danger — remise à zéro -->
+      <div style="background:rgba(255,77,77,.05);border:1px solid rgba(255,77,77,.2);border-radius:var(--r-lg);padding:22px;margin-bottom:18px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+          <span style="font-size:20px">🚨</span>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--ruby);font-family:var(--font-ui)">Zone de danger — Remise à zéro</div>
+            <div style="font-size:12px;color:var(--t-muted);margin-top:2px">Ces actions sont irréversibles. Procédez avec précaution.</div>
+          </div>
+        </div>
+
+        <!-- Option 1 : Restaurer les données démo -->
+        <div style="background:var(--bg-card);border:1px solid var(--border-md);border-radius:var(--r-md);padding:18px;margin-bottom:12px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">
+            <div style="flex:1;min-width:200px">
+              <div style="font-size:13px;font-weight:700;color:var(--t-bright);margin-bottom:5px">📋 Restaurer les données démo</div>
+              <div style="font-size:12px;color:var(--t-muted);line-height:1.55">Efface vos données actuelles et recharge toutes les données d'exemple d'origine — véhicules, chauffeurs, contrats, paiements…</div>
+            </div>
+            <button class="btn-secondary" onclick="resetData()" style="height:36px;font-size:12px;white-space:nowrap;flex-shrink:0">
+              ↩ Données démo
+            </button>
+          </div>
+        </div>
+
+        <!-- Option 2 : Remise à zéro complète -->
+        <div style="background:var(--ruby-bg);border:1px solid rgba(255,77,77,.25);border-radius:var(--r-md);padding:18px;margin-bottom:12px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">
+            <div style="flex:1;min-width:200px">
+              <div style="font-size:13px;font-weight:700;color:var(--ruby);margin-bottom:5px">🗑️ Remise à zéro complète</div>
+              <div style="font-size:12px;color:var(--t-muted);line-height:1.55">Supprime <strong style="color:var(--ruby)">toutes les données</strong> sans exception — flotte, chauffeurs, contrats, paiements, carburant, incidents… L'application démarrera entièrement vide.</div>
+            </div>
+            <button class="btn-danger" onclick="resetToBlank()" style="height:36px;font-size:12px;white-space:nowrap;flex-shrink:0">
+              🗑 Vider l'application
+            </button>
+          </div>
+        </div>
+
+        <!-- Option 3 : Effacer localStorage uniquement -->
+        <div style="background:var(--bg-card);border:1px solid rgba(255,154,60,.2);border-radius:var(--r-md);padding:18px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">
+            <div style="flex:1;min-width:200px">
+              <div style="font-size:13px;font-weight:700;color:var(--topaz);margin-bottom:5px">🧹 Vider le cache local</div>
+              <div style="font-size:12px;color:var(--t-muted);line-height:1.55">Supprime uniquement les données en cache localStorage (${lsSizeKb} Ko). Si Firebase est connecté, les données seront rechargées depuis le cloud au prochain démarrage.</div>
+            </div>
+            <button onclick="clearLocalCache()" style="height:36px;font-size:12px;white-space:nowrap;flex-shrink:0;background:rgba(255,154,60,.12);border:1px solid rgba(255,154,60,.3);color:var(--topaz);padding:0 16px;border-radius:var(--r-sm);cursor:pointer;transition:all .15s" onmouseover="this.style.background='rgba(255,154,60,.22)'" onmouseout="this.style.background='rgba(255,154,60,.12)'">
+              🧹 Vider le cache
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ FIREBASE CONFIG ══ -->
+      <div class="card" style="margin-bottom:18px" id="card-firebase-config">
+        <div class="card-head">
+          <span class="card-title">🔥 Configuration Firebase</span>
+          <span id="fb-status-badge" class="card-badge" style="background:${FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.length>10?'rgba(14,203,129,.15)':'rgba(255,154,60,.15)'};color:${FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.length>10?'var(--emerald)':'var(--topaz)'}">
+            ${FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.length>10?'✓ Configuré':'⚠ Non configuré'}
+          </span>
+        </div>
+        <div style="position:relative;z-index:1">
+          <div style="font-size:12px;color:var(--t-muted);margin-bottom:14px;line-height:1.6">
+            Renseignez vos clés Firebase depuis <strong style="color:var(--t-bright)">console.firebase.google.com</strong> → Paramètres du projet → Vos applications → SDK Web.
+            Les valeurs sont sauvegardées localement et appliquées au prochain démarrage.
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            ${[
+              ["apiKey",            "API Key",             FIREBASE_CONFIG.apiKey,            "AIzaSy..."],
+              ["authDomain",        "Auth Domain",         FIREBASE_CONFIG.authDomain,        "projet.firebaseapp.com"],
+              ["projectId",         "Project ID",          FIREBASE_CONFIG.projectId,         "mon-projet"],
+              ["storageBucket",     "Storage Bucket",      FIREBASE_CONFIG.storageBucket,     "projet.appspot.com"],
+              ["messagingSenderId", "Messaging Sender ID", FIREBASE_CONFIG.messagingSenderId, "123456789"],
+              ["appId",             "App ID",              FIREBASE_CONFIG.appId,             "1:123:web:abc"],
+            ].map(([key, label, val, ph]) => `
+              <div>
+                <div style="font-size:10px;font-weight:600;color:var(--t-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;font-family:var(--font-mono)">${label}</div>
+                <input id="fb-input-${key}" type="text" value="${val||''}" placeholder="${ph}"
+                  style="width:100%;background:var(--bg-panel);border:1px solid var(--border-md);border-radius:var(--r-sm);
+                  padding:8px 10px;font-size:12px;color:var(--t-bright);font-family:var(--font-mono);outline:none;transition:border .15s"
+                  onfocus="this.style.borderColor='rgba(232,169,38,.4)'" onblur="this.style.borderColor='var(--border-md)'"/>
+              </div>`).join("")}
+          </div>
+          <div style="display:flex;gap:10px;margin-top:14px;justify-content:flex-end">
+            <button onclick="testFirebaseConfig()" class="btn-secondary" style="height:34px;font-size:12px;padding:0 16px">
+              🔍 Tester la connexion
+            </button>
+            <button onclick="saveFirebaseConfig()" class="btn-primary" style="height:34px;font-size:12px;padding:0 18px">
+              💾 Enregistrer
+            </button>
+          </div>
+          <div id="fb-config-msg" style="margin-top:10px;font-size:12px;display:none"></div>
+        </div>
+      </div>
+
+      <!-- ══ CLOUDINARY CONFIG ══ -->
+      <div class="card" style="margin-bottom:18px" id="card-cloudinary-config">
+        <div class="card-head">
+          <span class="card-title">☁️ Configuration Cloudinary</span>
+          <span id="cl-status-badge" class="card-badge" style="background:${cloudinaryReady()?'rgba(14,203,129,.15)':'rgba(255,154,60,.15)'};color:${cloudinaryReady()?'var(--emerald)':'var(--topaz)'}">
+            ${cloudinaryReady()?'✓ Configuré':'⚠ Non configuré'}
+          </span>
+        </div>
+        <div style="position:relative;z-index:1">
+          <div style="font-size:12px;color:var(--t-muted);margin-bottom:14px;line-height:1.6">
+            Utilisé pour l'upload des photos de véhicules, documents et permis de conduire.
+            Plan gratuit : <strong style="color:var(--t-bright)">25 Go</strong> de stockage.
+            Depuis <strong style="color:var(--t-bright)">cloudinary.com</strong> → Dashboard → Settings → Upload → Add upload preset (mode <em>Unsigned</em>).
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <div>
+              <div style="font-size:10px;font-weight:600;color:var(--t-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;font-family:var(--font-mono)">Cloud Name *</div>
+              <input id="cl-input-cloudName" type="text" value="${CLOUDINARY_CONFIG.cloudName!=='VOTRE_CLOUD_NAME'?CLOUDINARY_CONFIG.cloudName:''}"
+                placeholder="ex: noldex-fleet-abc123"
+                style="width:100%;background:var(--bg-panel);border:1px solid var(--border-md);border-radius:var(--r-sm);
+                padding:8px 10px;font-size:12px;color:var(--t-bright);font-family:var(--font-mono);outline:none;transition:border .15s"
+                onfocus="this.style.borderColor='rgba(232,169,38,.4)'" onblur="this.style.borderColor='var(--border-md)'"/>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:600;color:var(--t-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;font-family:var(--font-mono)">Upload Preset *</div>
+              <input id="cl-input-uploadPreset" type="text" value="${CLOUDINARY_CONFIG.uploadPreset!=='VOTRE_UPLOAD_PRESET'?CLOUDINARY_CONFIG.uploadPreset:''}"
+                placeholder="ex: noldex_unsigned"
+                style="width:100%;background:var(--bg-panel);border:1px solid var(--border-md);border-radius:var(--r-sm);
+                padding:8px 10px;font-size:12px;color:var(--t-bright);font-family:var(--font-mono);outline:none;transition:border .15s"
+                onfocus="this.style.borderColor='rgba(232,169,38,.4)'" onblur="this.style.borderColor='var(--border-md)'"/>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:600;color:var(--t-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;font-family:var(--font-mono)">Dossier racine</div>
+              <input id="cl-input-folder" type="text" value="${CLOUDINARY_CONFIG.folder||'noldex-fleet'}"
+                placeholder="noldex-fleet"
+                style="width:100%;background:var(--bg-panel);border:1px solid var(--border-md);border-radius:var(--r-sm);
+                padding:8px 10px;font-size:12px;color:var(--t-bright);font-family:var(--font-mono);outline:none;transition:border .15s"
+                onfocus="this.style.borderColor='rgba(232,169,38,.4)'" onblur="this.style.borderColor='var(--border-md)'"/>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:600;color:var(--t-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;font-family:var(--font-mono)">Transfo. photo véhicule</div>
+              <input id="cl-input-transformVehicle" type="text" value="${CLOUDINARY_CONFIG.transforms?.vehiclePhoto||'w_800,h_600,c_fill,q_auto,f_auto'}"
+                placeholder="w_800,h_600,c_fill,q_auto,f_auto"
+                style="width:100%;background:var(--bg-panel);border:1px solid var(--border-md);border-radius:var(--r-sm);
+                padding:8px 10px;font-size:12px;color:var(--t-bright);font-family:var(--font-mono);outline:none;transition:border .15s"
+                onfocus="this.style.borderColor='rgba(232,169,38,.4)'" onblur="this.style.borderColor='var(--border-md)'"/>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:4px;justify-content:flex-end">
+            <button onclick="testCloudinaryConfig()" class="btn-secondary" style="height:34px;font-size:12px;padding:0 16px">
+              🔍 Tester l'upload
+            </button>
+            <button onclick="saveCloudinaryConfig()" class="btn-primary" style="height:34px;font-size:12px;padding:0 18px">
+              💾 Enregistrer
+            </button>
+          </div>
+          <div id="cl-config-msg" style="margin-top:10px;font-size:12px;display:none"></div>
+        </div>
+      </div>
+
+      <!-- À propos -->
+      <div class="card" style="margin-bottom:18px">
+        <div class="card-head">
+          <span class="card-title">ℹ️ À propos</span>
+          <span class="card-badge">v27</span>
+        </div>
+        <div style="position:relative;z-index:1;font-size:13px;color:var(--t-muted);line-height:1.7">
+          <div><strong style="color:var(--t-bright)">NOLDEX FLEET v27</strong> — Plateforme Logistique B2B</div>
+          <div style="margin-top:4px">Architecture : Single-file HTML · Firebase Firestore · PWA</div>
+          <div style="margin-top:4px">Design : Industrial Noir × Liquid Amber · Outfit · Playfair Display</div>
+        </div>
+      </div>
+
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════════════════
+//  PARAMÈTRES — Sauvegarde et test des configs
+// ══════════════════════════════════════════════════════
+
+function _showConfigMsg(elId, msg, color){
+  const el = document.getElementById(elId);
+  if(!el) return;
+  el.style.display = "block";
+  el.style.color   = color || "var(--emerald)";
+  el.innerHTML     = msg;
+  setTimeout(() => { if(el) el.style.display = "none"; }, 5000);
+}
+
+// ── Firebase ──
+function saveFirebaseConfig(){
+  const keys = ["apiKey","authDomain","projectId","storageBucket","messagingSenderId","appId"];
+  const cfg  = {};
+  for(const k of keys){
+    const v = (document.getElementById(`fb-input-${k}`)?.value || "").trim();
+    if(!v){
+      _showConfigMsg("fb-config-msg", `⚠ Le champ <strong>${k}</strong> est vide.`, "var(--topaz)");
+      return;
+    }
+    cfg[k] = v;
+  }
+  try{
+    localStorage.setItem("nf_firebase_config", JSON.stringify(cfg));
+    Object.assign(FIREBASE_CONFIG, cfg);
+    _showConfigMsg("fb-config-msg",
+      "✅ Configuration Firebase enregistrée. <strong>Rechargez la page</strong> pour appliquer les nouvelles clés.",
+      "var(--emerald)");
+    // MAJ badge
+    const badge = document.getElementById("fb-status-badge");
+    if(badge){ badge.textContent = "✓ Configuré"; badge.style.color = "var(--emerald)"; badge.style.background = "rgba(14,203,129,.15)"; }
+  } catch(e){
+    _showConfigMsg("fb-config-msg", "❌ Erreur : " + e.message, "var(--ruby)");
+  }
+}
+
+async function testFirebaseConfig(){
+  const projectId = (document.getElementById("fb-input-projectId")?.value || "").trim();
+  const apiKey    = (document.getElementById("fb-input-apiKey")?.value    || "").trim();
+  if(!projectId || !apiKey){
+    _showConfigMsg("fb-config-msg", "⚠ Renseignez au moins l'API Key et le Project ID avant de tester.", "var(--topaz)");
+    return;
+  }
+  _showConfigMsg("fb-config-msg", "⏳ Test en cours…", "var(--sapphire)");
+  try{
+    // Tenter une requête légère vers Firestore REST
+    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents?pageSize=1&key=${apiKey}`;
+    const res  = await fetch(url);
+    if(res.ok || res.status === 404 || res.status === 200){
+      _showConfigMsg("fb-config-msg", "✅ Connexion Firebase réussie — Project ID valide !", "var(--emerald)");
+    } else {
+      const err = await res.json().catch(() => ({}));
+      _showConfigMsg("fb-config-msg",
+        `❌ Erreur Firebase (${res.status}) : ${err?.error?.message || "Clés invalides ou projet inexistant."}`,
+        "var(--ruby)");
+    }
+  } catch(e){
+    _showConfigMsg("fb-config-msg", "❌ Connexion impossible : " + e.message, "var(--ruby)");
+  }
+}
+
+// ── Cloudinary ──
+function saveCloudinaryConfig(){
+  const cloudName      = (document.getElementById("cl-input-cloudName")?.value      || "").trim();
+  const uploadPreset   = (document.getElementById("cl-input-uploadPreset")?.value   || "").trim();
+  const folder         = (document.getElementById("cl-input-folder")?.value         || "noldex-fleet").trim();
+  const transformVeh   = (document.getElementById("cl-input-transformVehicle")?.value|| "").trim();
+
+  if(!cloudName || !uploadPreset){
+    _showConfigMsg("cl-config-msg", "⚠ Cloud Name et Upload Preset sont obligatoires.", "var(--topaz)");
+    return;
+  }
+  const cfg = {
+    cloudName, uploadPreset, folder,
+    folders: {
+      vehiclePhotos  : `${folder}/vehicles`,
+      documents      : `${folder}/documents`,
+      driverLicenses : `${folder}/drivers`,
+    },
+    transforms: {
+      vehiclePhoto  : transformVeh || "w_800,h_600,c_fill,q_auto,f_auto",
+      driverLicense : "w_600,h_400,c_fit,q_auto,f_auto",
+      document      : "",
+    }
+  };
+  try{
+    localStorage.setItem("nf_cloudinary_config", JSON.stringify(cfg));
+    Object.assign(CLOUDINARY_CONFIG, cfg);
+    _showConfigMsg("cl-config-msg", "✅ Configuration Cloudinary enregistrée et active immédiatement.", "var(--emerald)");
+    const badge = document.getElementById("cl-status-badge");
+    if(badge){ badge.textContent = "✓ Configuré"; badge.style.color = "var(--emerald)"; badge.style.background = "rgba(14,203,129,.15)"; }
+  } catch(e){
+    _showConfigMsg("cl-config-msg", "❌ Erreur : " + e.message, "var(--ruby)");
+  }
+}
+
+async function testCloudinaryConfig(){
+  const cloudName    = (document.getElementById("cl-input-cloudName")?.value    || "").trim();
+  const uploadPreset = (document.getElementById("cl-input-uploadPreset")?.value || "").trim();
+  if(!cloudName || !uploadPreset){
+    _showConfigMsg("cl-config-msg", "⚠ Renseignez Cloud Name et Upload Preset avant de tester.", "var(--topaz)");
+    return;
+  }
+  _showConfigMsg("cl-config-msg", "⏳ Test upload d'un pixel de test…", "var(--sapphire)");
+  try{
+    // Créer un fichier 1×1 pixel transparent comme test minimal
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 1;
+    const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
+    const formData = new FormData();
+    formData.append("file",           blob, "test.png");
+    formData.append("upload_preset",  uploadPreset);
+    formData.append("folder",         "noldex-fleet/test");
+    const res  = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {method:"POST",body:formData});
+    const data = await res.json();
+    if(res.ok && data.secure_url){
+      _showConfigMsg("cl-config-msg",
+        `✅ Cloudinary opérationnel ! URL test : <a href="${data.secure_url}" target="_blank" style="color:var(--amber)">${data.secure_url.slice(0,60)}…</a>`,
+        "var(--emerald)");
+    } else {
+      _showConfigMsg("cl-config-msg",
+        `❌ Erreur Cloudinary : ${data?.error?.message || "Preset invalide ou Cloud Name incorrect."}`,
+        "var(--ruby)");
+    }
+  } catch(e){
+    _showConfigMsg("cl-config-msg", "❌ Connexion impossible : " + e.message, "var(--ruby)");
+  }
+}
+
+// Vider uniquement le cache localStorage (sans toucher aux données en mémoire)
+function clearLocalCache(){
+  openConfirmModal("🧹 Vider le cache local",
+    "Cette action supprime les données du cache localStorage.<br><br>Si Firebase est connecté, les données seront rechargées depuis le cloud. Sinon, une page vide sera affichée.",
+    () => {
+      Object.values(LS_KEYS).forEach(k => localStorage.removeItem(k));
+      showToast("✅ Cache localStorage vidé — rechargement…", "var(--topaz)");
+      setTimeout(() => location.reload(), 1200);
+    }
+  );
+}
+
 async function bootApp(){
   // 1. Charger localStorage en premier (affichage immédiat)
   loadAll();
